@@ -9,6 +9,8 @@ var nodeType = "n1-standard-1";
 var domain = "cyberapocalypse.co.uk";
 var accountsHost = "accounts.portal." + domain;
 var portalHost = "portal.portal." + domain;
+var dnsZone = "portal";
+var k8sNamespace = "cyberapocalypse";
 
 const ipAddress = new gcp.compute.Address("address", {
     name: "evs",
@@ -16,7 +18,7 @@ const ipAddress = new gcp.compute.Address("address", {
 });
 
 const envDnsZone = gcp.dns.getManagedZone({
-    name: "portal",
+    name: dnsZone,
 });
 
 const portalDns = new gcp.dns.RecordSet("portal-dns", {
@@ -123,7 +125,7 @@ const portalReq = new tls.CertRequest("portal-req", {
         commonName: "Cyberapocalypse portal cert",
         organization: "Cyberapocalypse"
     }],
-    dnsNames: [ portalHost, accountHost ],
+    dnsNames: [ portalHost, accountsHost ],
     ipAddresses: [ipAddress.address],
 });
 
@@ -144,11 +146,11 @@ const portalSecret = new k8s.core.v1.Secret("portal-keys",
     {
         metadata: {
             name: "portal-keys",
-            namespace: "cyberapocalypse"
+            namespace: k8sNamespace,
         },
         stringData: {
             "server.crt": portalCertBundle,
-            "server.key": portalKey.privateKeyPem
+            "server.key": portalKey.privateKeyPem,
         }
     },
     {
