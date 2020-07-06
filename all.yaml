@@ -1,0 +1,2765 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: cyberapocalypse
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: hadoop
+      component: gaffer
+      instance: hadoop0000
+    name: hadoop0000
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: hadoop
+        component: gaffer
+        instance: hadoop0000
+    template:
+      metadata:
+        labels:
+          app: hadoop
+          component: gaffer
+          instance: hadoop0000
+      spec:
+        containers:
+        - env:
+          - name: DFS_REPLICATION
+            value: '1'
+          - name: DAEMONS
+            value: namenode,secondarynamenode,datanode
+          image: cybermaggedon/hadoop:2.10.0
+          name: hadoop
+          ports:
+          - containerPort: 50070
+            name: namenode-http
+          - containerPort: 50075
+            name: datanode
+          - containerPort: 9000
+            name: namenode-rpc
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 1G
+            requests:
+              cpu: '0.1'
+              memory: 1G
+          volumeMounts:
+          - mountPath: /data
+            name: data
+            readOnly: false
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: hadoop-0000
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: hadoop
+      component: gaffer
+    name: hadoop0000
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: rpc
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+    selector:
+      app: hadoop
+      component: gaffer
+      instance: hadoop0000
+- apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    labels:
+      app: hadoop
+      component: gaffer
+    name: hadoop
+  parameters:
+    type: pd-ssd
+  provisioner: kubernetes.io/gce-pd
+  reclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: hadoop
+      component: gaffer
+    name: hadoop-0000
+    namespace: cyberapocalypse
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 5G
+    storageClassName: hadoop
+    volumeMode: Filesystem
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: zk
+      component: gaffer
+      instance: zk1
+    name: zk1
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: zk
+        component: gaffer
+        instance: zk1
+    template:
+      metadata:
+        labels:
+          app: zk
+          component: gaffer
+          instance: zk1
+      spec:
+        containers:
+        - env:
+          - name: ZOOKEEPER_MYID
+            value: '1'
+          - name: ZOOKEEPERS
+            value: '1'
+          image: cybermaggedon/zookeeper:3.6.1
+          name: zookeeper
+          ports:
+          - containerPort: 2888
+            name: internal1
+          - containerPort: 3888
+            name: internal2
+          - containerPort: 2181
+            name: service
+          resources:
+            limits:
+              cpu: '0.5'
+              memory: 256M
+            requests:
+              cpu: '0.05'
+              memory: 256M
+          volumeMounts:
+          - mountPath: /data
+            name: data
+            readOnly: false
+        hostname: zk1
+        subdomain: zk
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: zookeeper-0000
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: zk
+      component: gaffer
+    name: zk
+    namespace: cyberapocalypse
+  spec:
+    clusterIP: None
+    ports:
+    - name: internal1
+      port: 2888
+      protocol: TCP
+      targetPort: 2888
+    - name: internal2
+      port: 3888
+      protocol: TCP
+      targetPort: 3888
+    - name: service
+      port: 2181
+      protocol: TCP
+      targetPort: 2181
+    selector:
+      app: zk
+- apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    labels:
+      app: zookeeper
+      component: gaffer
+    name: zookeeper
+  parameters:
+    type: pd-ssd
+  provisioner: kubernetes.io/gce-pd
+  reclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: zookeeper
+      component: gaffer
+    name: zookeeper-0000
+    namespace: cyberapocalypse
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 1G
+    storageClassName: zookeeper
+    volumeMode: Filesystem
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: accumulo
+      component: gaffer
+      instance: accumulo-master
+    name: accumulo-master
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: accumulo
+        component: gaffer
+        instance: accumulo-master
+    template:
+      metadata:
+        labels:
+          app: accumulo
+          component: gaffer
+          instance: accumulo-master
+      spec:
+        containers:
+        - command:
+          - /start-process
+          - master
+          env:
+          - name: ZOOKEEPERS
+            value: zk1.zk
+          - name: MASTER_HOSTS
+            value: master.accumulo
+          - name: GC_HOSTS
+            value: gc.accumulo
+          - name: MONITOR_HOSTS
+            value: monitor.accumulo
+          - name: TRACER_HOSTS
+            value: tracer.accumulo
+          - name: SLAVE_HOSTS
+            value: slave0000.accumulo
+          - name: HDFS_VOLUMES
+            value: hdfs://hadoop0000:9000/accumulo
+          - name: NAMENODE_URI
+            value: hdfs://hadoop0000:9000/
+          - name: MEMORY_MAPS_MAX
+            value: 300M
+          - name: CACHE_DATA_SIZE
+            value: 30M
+          - name: CACHE_INDEX_SIZE
+            value: 40M
+          - name: SORT_BUFFER_SIZE
+            value: 50M
+          - name: WALOG_MAX_SIZE
+            value: 512M
+          image: cybermaggedon/accumulo-gaffer:1.12.0b
+          name: accumulo
+          ports:
+          - containerPort: 9999
+            name: master
+          - containerPort: 9997
+            name: tablet-server
+          - containerPort: 50091
+            name: gc
+          - containerPort: 9995
+            name: monitor
+          - containerPort: 4560
+            name: monitor-log
+          - containerPort: 12234
+            name: tracer
+          - containerPort: 42424
+            name: proxy
+          - containerPort: 10002
+            name: slave
+          - containerPort: 10001
+            name: replication
+          resources:
+            limits:
+              cpu: '0.5'
+              memory: 512M
+            requests:
+              cpu: '0.05'
+              memory: 512M
+        hostname: master
+        subdomain: accumulo
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: accumulo
+      component: gaffer
+      instance: accumulo-gc
+    name: accumulo-gc
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: accumulo
+        component: gaffer
+        instance: accumulo-gc
+    template:
+      metadata:
+        labels:
+          app: accumulo
+          component: gaffer
+          instance: accumulo-gc
+      spec:
+        containers:
+        - command:
+          - /start-process
+          - gc
+          env:
+          - name: ZOOKEEPERS
+            value: zk1.zk
+          - name: MASTER_HOSTS
+            value: master.accumulo
+          - name: GC_HOSTS
+            value: gc.accumulo
+          - name: MONITOR_HOSTS
+            value: monitor.accumulo
+          - name: TRACER_HOSTS
+            value: tracer.accumulo
+          - name: SLAVE_HOSTS
+            value: slave0000.accumulo
+          - name: HDFS_VOLUMES
+            value: hdfs://hadoop0000:9000/accumulo
+          - name: NAMENODE_URI
+            value: hdfs://hadoop0000:9000/
+          - name: MEMORY_MAPS_MAX
+            value: 300M
+          - name: CACHE_DATA_SIZE
+            value: 30M
+          - name: CACHE_INDEX_SIZE
+            value: 40M
+          - name: SORT_BUFFER_SIZE
+            value: 50M
+          - name: WALOG_MAX_SIZE
+            value: 512M
+          image: cybermaggedon/accumulo-gaffer:1.12.0b
+          name: accumulo
+          ports:
+          - containerPort: 9999
+            name: master
+          - containerPort: 9997
+            name: tablet-server
+          - containerPort: 50091
+            name: gc
+          - containerPort: 9995
+            name: monitor
+          - containerPort: 4560
+            name: monitor-log
+          - containerPort: 12234
+            name: tracer
+          - containerPort: 42424
+            name: proxy
+          - containerPort: 10002
+            name: slave
+          - containerPort: 10001
+            name: replication
+          resources:
+            limits:
+              cpu: '0.5'
+              memory: 512M
+            requests:
+              cpu: '0.05'
+              memory: 512M
+        hostname: gc
+        subdomain: accumulo
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: accumulo
+      component: gaffer
+      instance: accumulo-tracer
+    name: accumulo-tracer
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: accumulo
+        component: gaffer
+        instance: accumulo-tracer
+    template:
+      metadata:
+        labels:
+          app: accumulo
+          component: gaffer
+          instance: accumulo-tracer
+      spec:
+        containers:
+        - command:
+          - /start-process
+          - tracer
+          env:
+          - name: ZOOKEEPERS
+            value: zk1.zk
+          - name: MASTER_HOSTS
+            value: master.accumulo
+          - name: GC_HOSTS
+            value: gc.accumulo
+          - name: MONITOR_HOSTS
+            value: monitor.accumulo
+          - name: TRACER_HOSTS
+            value: tracer.accumulo
+          - name: SLAVE_HOSTS
+            value: slave0000.accumulo
+          - name: HDFS_VOLUMES
+            value: hdfs://hadoop0000:9000/accumulo
+          - name: NAMENODE_URI
+            value: hdfs://hadoop0000:9000/
+          - name: MEMORY_MAPS_MAX
+            value: 300M
+          - name: CACHE_DATA_SIZE
+            value: 30M
+          - name: CACHE_INDEX_SIZE
+            value: 40M
+          - name: SORT_BUFFER_SIZE
+            value: 50M
+          - name: WALOG_MAX_SIZE
+            value: 512M
+          image: cybermaggedon/accumulo-gaffer:1.12.0b
+          name: accumulo
+          ports:
+          - containerPort: 9999
+            name: master
+          - containerPort: 9997
+            name: tablet-server
+          - containerPort: 50091
+            name: gc
+          - containerPort: 9995
+            name: monitor
+          - containerPort: 4560
+            name: monitor-log
+          - containerPort: 12234
+            name: tracer
+          - containerPort: 42424
+            name: proxy
+          - containerPort: 10002
+            name: slave
+          - containerPort: 10001
+            name: replication
+          resources:
+            limits:
+              cpu: '0.5'
+              memory: 512M
+            requests:
+              cpu: '0.05'
+              memory: 512M
+        hostname: tracer
+        subdomain: accumulo
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: accumulo
+      component: gaffer
+      instance: accumulo-monitor
+    name: accumulo-monitor
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: accumulo
+        component: gaffer
+        instance: accumulo-monitor
+    template:
+      metadata:
+        labels:
+          app: accumulo
+          component: gaffer
+          instance: accumulo-monitor
+      spec:
+        containers:
+        - command:
+          - /start-process
+          - monitor
+          env:
+          - name: ZOOKEEPERS
+            value: zk1.zk
+          - name: MASTER_HOSTS
+            value: master.accumulo
+          - name: GC_HOSTS
+            value: gc.accumulo
+          - name: MONITOR_HOSTS
+            value: monitor.accumulo
+          - name: TRACER_HOSTS
+            value: tracer.accumulo
+          - name: SLAVE_HOSTS
+            value: slave0000.accumulo
+          - name: HDFS_VOLUMES
+            value: hdfs://hadoop0000:9000/accumulo
+          - name: NAMENODE_URI
+            value: hdfs://hadoop0000:9000/
+          - name: MEMORY_MAPS_MAX
+            value: 300M
+          - name: CACHE_DATA_SIZE
+            value: 30M
+          - name: CACHE_INDEX_SIZE
+            value: 40M
+          - name: SORT_BUFFER_SIZE
+            value: 50M
+          - name: WALOG_MAX_SIZE
+            value: 512M
+          image: cybermaggedon/accumulo-gaffer:1.12.0b
+          name: accumulo
+          ports:
+          - containerPort: 9999
+            name: master
+          - containerPort: 9997
+            name: tablet-server
+          - containerPort: 50091
+            name: gc
+          - containerPort: 9995
+            name: monitor
+          - containerPort: 4560
+            name: monitor-log
+          - containerPort: 12234
+            name: tracer
+          - containerPort: 42424
+            name: proxy
+          - containerPort: 10002
+            name: slave
+          - containerPort: 10001
+            name: replication
+          resources:
+            limits:
+              cpu: '0.5'
+              memory: 512M
+            requests:
+              cpu: '0.05'
+              memory: 512M
+        hostname: monitor
+        subdomain: accumulo
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: accumulo
+      component: gaffer
+      instance: accumulo-slave0000
+    name: accumulo-slave0000
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: accumulo
+        component: gaffer
+        instance: accumulo-slave0000
+    template:
+      metadata:
+        labels:
+          app: accumulo
+          component: gaffer
+          instance: accumulo-slave0000
+      spec:
+        containers:
+        - command:
+          - /start-process
+          - tserver
+          env:
+          - name: ZOOKEEPERS
+            value: zk1.zk
+          - name: MASTER_HOSTS
+            value: master.accumulo
+          - name: GC_HOSTS
+            value: gc.accumulo
+          - name: MONITOR_HOSTS
+            value: monitor.accumulo
+          - name: TRACER_HOSTS
+            value: tracer.accumulo
+          - name: SLAVE_HOSTS
+            value: slave0000.accumulo
+          - name: HDFS_VOLUMES
+            value: hdfs://hadoop0000:9000/accumulo
+          - name: NAMENODE_URI
+            value: hdfs://hadoop0000:9000/
+          - name: MEMORY_MAPS_MAX
+            value: 300M
+          - name: CACHE_DATA_SIZE
+            value: 30M
+          - name: CACHE_INDEX_SIZE
+            value: 40M
+          - name: SORT_BUFFER_SIZE
+            value: 50M
+          - name: WALOG_MAX_SIZE
+            value: 512M
+          image: cybermaggedon/accumulo-gaffer:1.12.0b
+          name: accumulo
+          ports:
+          - containerPort: 9999
+            name: master
+          - containerPort: 9997
+            name: tablet-server
+          - containerPort: 50091
+            name: gc
+          - containerPort: 9995
+            name: monitor
+          - containerPort: 4560
+            name: monitor-log
+          - containerPort: 12234
+            name: tracer
+          - containerPort: 42424
+            name: proxy
+          - containerPort: 10002
+            name: slave
+          - containerPort: 10001
+            name: replication
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 1G
+            requests:
+              cpu: '0.1'
+              memory: 1G
+        hostname: slave0000
+        subdomain: accumulo
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: accumulo
+      component: gaffer
+    name: accumulo
+    namespace: cyberapocalypse
+  spec:
+    clusterIP: None
+    ports:
+    - name: master
+      port: 9999
+      protocol: TCP
+      targetPort: 9999
+    - name: gc
+      port: 50091
+      protocol: TCP
+      targetPort: 50091
+    - name: monitor
+      port: 9995
+      protocol: TCP
+      targetPort: 9995
+    - name: tracer
+      port: 12234
+      protocol: TCP
+      targetPort: 12234
+    - name: proxy
+      port: 42424
+      protocol: TCP
+      targetPort: 42424
+    - name: slave
+      port: 10002
+      protocol: TCP
+      targetPort: 10002
+    - name: replication
+      port: 10001
+      protocol: TCP
+      targetPort: 10001
+    selector:
+      app: accumulo
+      instance: accumulo-master
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: gaffer-risk
+      component: gaffer
+      instance: gaffer-risk
+    name: gaffer-risk
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: gaffer-risk
+        component: gaffer
+        instance: gaffer-risk
+    template:
+      metadata:
+        labels:
+          app: gaffer-risk
+          component: gaffer
+          instance: gaffer-risk
+      spec:
+        containers:
+        - env:
+          - name: ZOOKEEPERS
+            value: zk1.zk
+          - name: ACCUMULO_TABLE
+            value: riskgraph
+          image: cybermaggedon/wildfly-gaffer:1.12.0b
+          name: gaffer
+          ports:
+          - containerPort: 8080
+            name: rest
+          resources:
+            limits:
+              cpu: '1.5'
+              memory: 1G
+            requests:
+              cpu: '0.1'
+              memory: 1G
+          volumeMounts:
+          - mountPath: /usr/local/wildfly/schema
+            name: schema
+            readOnly: true
+        volumes:
+        - configMap:
+            name: risk-schema
+          name: schema
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: gaffer-risk
+      component: gaffer
+    name: risk-graph
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: rest
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: gaffer-risk
+      component: gaffer
+- apiVersion: v1
+  data:
+    schema.json: "{\n    \"entities\": {\n        \"actor\": {\n            \"vertex\"\
+      : \"string\",\n            \"properties\": {\n                \"group\": \"\
+      string\",\n                \"count\": \"int\",\n                \"time\": \"\
+      timestamp.set\"\n            }\n        },\n        \"resource\": {\n      \
+      \      \"vertex\": \"string\",\n            \"properties\": {\n            \
+      \    \"type\": \"string\",\n                \"count\": \"int\",\n          \
+      \      \"time\": \"timestamp.set\"\n            }\n        },\n        \"risk\"\
+      : {\n            \"vertex\": \"string\",\n            \"properties\": {\n  \
+      \              \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        }\n    },\n    \"edges\": {\n        \"actorresource\"\
+      : {\n            \"source\": \"string\",\n            \"destination\": \"string\"\
+      ,\n            \"directed\": \"true\",\n            \"properties\": {\n    \
+      \            \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"actorrisk\": {\n            \"source\"\
+      : \"string\",\n            \"destination\": \"string\",\n            \"directed\"\
+      : \"true\",\n            \"properties\": {\n                \"count\": \"int\"\
+      ,\n                \"time\": \"timestamp.set\"\n            }\n        },\n\
+      \        \"resourcerisk\": {\n            \"source\": \"string\",\n        \
+      \    \"destination\": \"string\",\n            \"directed\": \"true\",\n   \
+      \         \"properties\": {\n                \"count\": \"int\",\n         \
+      \       \"time\": \"timestamp.set\"\n            }\n        }\n    },\n    \"\
+      types\": {\n        \"int\": {\n            \"class\": \"java.lang.Integer\"\
+      ,\n            \"aggregateFunction\": {\n                \"class\": \"uk.gov.gchq.koryphe.impl.binaryoperator.Sum\"\
+      \n            }\n        },\n        \"time\": {\n            \"class\": \"\
+      java.lang.Integer\",\n            \"aggregateFunction\": {\n               \
+      \ \"class\": \"uk.gov.gchq.koryphe.impl.binaryoperator.First\"\n           \
+      \ }\n        },\n        \"string\": {\n            \"class\": \"java.lang.String\"\
+      ,\n            \"aggregateFunction\": {\n                \"class\": \"uk.gov.gchq.koryphe.impl.binaryoperator.First\"\
+      \n            }\n        },\n        \"true\": {\n            \"class\": \"\
+      java.lang.Boolean\",\n            \"validateFunctions\": [\n               \
+      \ {\n                    \"class\": \"uk.gov.gchq.koryphe.impl.predicate.IsTrue\"\
+      \n                }\n            ]\n        },\n        \"timestamp.set\": {\n\
+      \            \"class\": \"uk.gov.gchq.gaffer.time.RBMBackedTimestampSet\",\n\
+      \            \"aggregateFunction\": {\n                \"class\": \"uk.gov.gchq.gaffer.time.binaryoperator.RBMBackedTimestampSetAggregator\"\
+      \n            },\n            \"serialiser\": {\n                \"class\":\
+      \ \"uk.gov.gchq.gaffer.time.serialisation.RBMBackedTimestampSetSerialiser\"\n\
+      \            }\n        }\n    }\n}\n"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: gaffer-risk
+      component: gaffer
+    name: risk-schema
+    namespace: cyberapocalypse
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: gaffer-threat
+      component: gaffer
+      instance: gaffer-threat
+    name: gaffer-threat
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: gaffer-threat
+        component: gaffer
+        instance: gaffer-threat
+    template:
+      metadata:
+        labels:
+          app: gaffer-threat
+          component: gaffer
+          instance: gaffer-threat
+      spec:
+        containers:
+        - env:
+          - name: ZOOKEEPERS
+            value: zk1.zk
+          - name: ACCUMULO_TABLE
+            value: threatgraph
+          image: cybermaggedon/wildfly-gaffer:1.12.0b
+          name: gaffer
+          ports:
+          - containerPort: 8080
+            name: rest
+          resources:
+            limits:
+              cpu: '1.5'
+              memory: 1G
+            requests:
+              cpu: '0.1'
+              memory: 1G
+          volumeMounts:
+          - mountPath: /usr/local/wildfly/schema
+            name: schema
+            readOnly: true
+        volumes:
+        - configMap:
+            name: threat-schema
+          name: schema
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: gaffer-threat
+      component: gaffer
+    name: threat-graph
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: rest
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: gaffer-threat
+      component: gaffer
+- apiVersion: v1
+  data:
+    schema.json: "{\n    \"entities\": {\n        \"ip\": {\n            \"vertex\"\
+      : \"string\",\n            \"properties\": {\n                \"count\": \"\
+      int\",\n                \"time\": \"timestamp.set\"\n            }\n       \
+      \ },\n        \"domain\": {\n            \"vertex\": \"string\",\n         \
+      \   \"properties\": {\n                \"count\": \"int\",\n               \
+      \ \"time\": \"timestamp.set\"\n            }\n        },\n        \"email\"\
+      : {\n            \"vertex\": \"string\",\n            \"properties\": {\n  \
+      \              \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"identity\": {\n            \"vertex\"\
+      : \"string\",\n            \"properties\": {\n                \"type\": \"string\"\
+      ,\n                \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"hostname\": {\n            \"vertex\"\
+      : \"string\",\n            \"properties\": {\n                \"count\": \"\
+      int\",\n                \"time\": \"timestamp.set\"\n            }\n       \
+      \ },\n        \"server\": {\n            \"vertex\": \"string\",\n         \
+      \   \"properties\": {\n                \"count\": \"int\",\n               \
+      \ \"time\": \"timestamp.set\"\n            }\n        },\n        \"attacker\"\
+      : {\n            \"vertex\": \"string\",\n            \"properties\": {\n  \
+      \              \"type\": \"string\",\n                \"source\": \"string\"\
+      ,\n                \"publisher\": \"string\",\n                \"update\": \"\
+      timestamp.set\",\n                \"version\": \"string\",\n               \
+      \ \"risk\": \"riskFactor\"\n            }\n        },\n        \"device\": {\n\
+      \            \"vertex\": \"string\",\n            \"properties\": {\n      \
+      \          \"count\": \"int\",\n                \"network\": \"string\",\n \
+      \               \"time\": \"timestamp.set\"\n            }\n        },\n   \
+      \     \"tactics\": {\n            \"vertex\": \"string\",\n            \"properties\"\
+      : {\n                \"type\": \"string\",\n                \"source\": \"string\"\
+      ,\n                \"publisher\": \"string\",\n                \"update\": \"\
+      timestamp.set\",\n                \"version\": \"string\",\n               \
+      \ \"risk\": \"riskFactor\"\n            }\n        },\n        \"intrusion\"\
+      : {\n            \"vertex\": \"string\",\n            \"properties\": {\n  \
+      \              \"type\": \"string\",\n                \"source\": \"string\"\
+      ,\n                \"publisher\": \"string\",\n                \"update\": \"\
+      timestamp.set\",\n                \"version\": \"string\",\n               \
+      \ \"risk\": \"riskFactor\"\n            }\n        },\n        \"indicator\"\
+      : {\n            \"vertex\": \"string\",\n            \"properties\": {\n  \
+      \              \"type\": \"string\",\n                \"source\": \"string\"\
+      ,\n                \"publisher\": \"string\",\n                \"update\": \"\
+      timestamp.set\",\n                \"version\": \"string\",\n               \
+      \ \"risk\": \"riskFactor\"\n            }\n        },\n        \"report\": {\n\
+      \            \"vertex\": \"string\",\n            \"properties\": {\n      \
+      \          \"type\": \"string\",\n                \"source\": \"string\",\n\
+      \                \"publisher\": \"string\",\n                \"update\": \"\
+      timestamp.set\",\n                \"version\": \"string\",\n               \
+      \ \"probability\": \"riskFactor\"\n            }\n        },\n        \"blacklist\"\
+      : {\n            \"vertex\": \"string\",\n            \"properties\": {\n  \
+      \              \"type\": \"string\",\n                \"source\": \"string\"\
+      ,\n                \"publisher\": \"string\",\n                \"update\": \"\
+      timestamp.set\",\n                \"version\": \"string\",\n               \
+      \ \"probability\": \"riskFactor\"\n            }\n        },\n        \"whois\"\
+      : {\n            \"vertex\": \"string\",\n            \"properties\": {\n  \
+      \              \"created\": \"time\",\n                \"updated\": \"time\"\
+      ,\n                \"expires\": \"time\",\n                \"nameservers\":\
+      \ \"string\",\n                \"server\": \"string\",\n                \"country\"\
+      : \"string\",\n                \"lookup\": \"time\",\n                \"registrarid\"\
+      : \"registrar\"\n            }\n        },\n        \"version\": {\n       \
+      \     \"vertex\": \"string\",\n            \"properties\": {\n             \
+      \   \"vendor\": \"string\",\n                \"time\": \"timestamp.set\"\n \
+      \           }\n        },\n        \"ja3\": {\n            \"vertex\": \"string\"\
+      ,\n            \"properties\": {\n                \"count\": \"int\",\n    \
+      \            \"time\": \"timestamp.set\"\n            }\n        },\n      \
+      \  \"useragent\": {\n            \"vertex\": \"string\",\n            \"properties\"\
+      : {\n                \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        }\n    },\n    \"edges\": {\n        \"ipflow\": {\n\
+      \            \"source\": \"string\",\n            \"destination\": \"string\"\
+      ,\n            \"directed\": \"true\",\n            \"properties\": {\n    \
+      \            \"action\": \"string\",\n                \"type\": \"string\",\n\
+      \                \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"dns\": {\n            \"source\": \"\
+      string\",\n            \"destination\": \"string\",\n            \"directed\"\
+      : \"true\",\n            \"properties\": {\n                \"action\": \"string\"\
+      ,\n                \"type\": \"string\",\n                \"count\": \"int\"\
+      ,\n                \"time\": \"timestamp.set\"\n            }\n        },\n\
+      \        \"indomain\": {\n            \"source\": \"string\",\n            \"\
+      destination\": \"string\",\n            \"directed\": \"true\",\n          \
+      \  \"properties\": {\n                \"action\": \"string\",\n            \
+      \    \"type\": \"string\",\n                \"count\": \"int\",\n          \
+      \      \"time\": \"timestamp.set\"\n            }\n        },\n        \"dnsquery\"\
+      : {\n            \"source\": \"string\",\n            \"destination\": \"string\"\
+      ,\n            \"directed\": \"true\",\n            \"properties\": {\n    \
+      \            \"action\": \"string\",\n                \"type\": \"string\",\n\
+      \                \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"dnsresolve\": {\n            \"source\"\
+      : \"string\",\n            \"destination\": \"string\",\n            \"directed\"\
+      : \"true\",\n            \"properties\": {\n                \"action\": \"string\"\
+      ,\n                \"type\": \"string\",\n                \"count\": \"int\"\
+      ,\n                \"time\": \"timestamp.set\"\n            }\n        },\n\
+      \        \"requests\": {\n            \"source\": \"string\",\n            \"\
+      destination\": \"string\",\n            \"directed\": \"true\",\n          \
+      \  \"properties\": {\n                \"action\": \"string\",\n            \
+      \    \"type\": \"string\",\n                \"count\": \"int\",\n          \
+      \      \"time\": \"timestamp.set\"\n            }\n        },\n        \"hosts\"\
+      : {\n            \"source\": \"string\",\n            \"destination\": \"string\"\
+      ,\n            \"directed\": \"true\",\n            \"properties\": {\n    \
+      \            \"action\": \"string\",\n                \"type\": \"string\",\n\
+      \                \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"uses\": {\n            \"source\": \"\
+      string\",\n            \"destination\": \"string\",\n            \"directed\"\
+      : \"true\",\n            \"properties\": {\n                \"action\": \"string\"\
+      ,\n                \"type\": \"string\",\n                \"count\": \"int\"\
+      ,\n                \"time\": \"timestamp.set\"\n            }\n        },\n\
+      \        \"threat\": {\n            \"source\": \"string\",\n            \"\
+      destination\": \"string\",\n            \"directed\": \"true\",\n          \
+      \  \"properties\": {\n                \"type\": \"string\",\n              \
+      \  \"count\": \"int\",\n                \"time\": \"timestamp.set\"\n      \
+      \      }\n        },\n        \"attacks\": {\n            \"source\": \"string\"\
+      ,\n            \"destination\": \"string\",\n            \"directed\": \"true\"\
+      ,\n            \"properties\": {\n                \"type\": \"string\",\n  \
+      \              \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"matches\": {\n            \"source\"\
+      : \"string\",\n            \"destination\": \"string\",\n            \"directed\"\
+      : \"true\",\n            \"properties\": {\n                \"type\": \"string\"\
+      ,\n                \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      ,\n                \"description\": \"string\",\n                \"status\"\
+      : \"string\",\n                \"severity\": \"string\",\n                \"\
+      id\": \"string\"\n            }\n        },\n        \"serves\": {\n       \
+      \     \"source\": \"string\",\n            \"destination\": \"string\",\n  \
+      \          \"directed\": \"true\",\n            \"properties\": {\n        \
+      \        \"action\": \"string\",\n                \"type\": \"string\",\n  \
+      \              \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"probed\": {\n            \"source\":\
+      \ \"string\",\n            \"destination\": \"string\",\n            \"directed\"\
+      : \"true\",\n            \"properties\": {\n                \"probe\": \"string\"\
+      ,\n                \"probetime\": \"time\",\n                \"type\": \"string\"\
+      ,\n                \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"hasip\": {\n            \"source\": \"\
+      string\",\n            \"destination\": \"string\",\n            \"directed\"\
+      : \"true\",\n            \"properties\": {\n                \"type\": \"string\"\
+      ,\n                \"count\": \"int\",\n                \"time\": \"timestamp.set\"\
+      \n            }\n        },\n        \"isrunning\": {\n            \"source\"\
+      : \"string\",\n            \"destination\": \"string\",\n            \"directed\"\
+      : \"true\",\n            \"properties\": {\n                \"count\": \"int\"\
+      ,\n                \"time\": \"timestamp.set\"\n            }\n        },\n\
+      \        \"isemitting\": {\n            \"source\": \"string\",\n          \
+      \  \"destination\": \"string\",\n            \"directed\": \"true\",\n     \
+      \       \"properties\": {\n                \"count\": \"int\",\n           \
+      \     \"time\": \"timestamp.set\"\n            }\n        }\n    },\n    \"\
+      types\": {\n        \"int\": {\n            \"class\": \"java.lang.Integer\"\
+      ,\n            \"aggregateFunction\": {\n                \"class\": \"uk.gov.gchq.koryphe.impl.binaryoperator.Sum\"\
+      \n            }\n        },\n        \"time\": {\n            \"class\": \"\
+      java.lang.Integer\",\n            \"aggregateFunction\": {\n               \
+      \ \"class\": \"uk.gov.gchq.koryphe.impl.binaryoperator.First\"\n           \
+      \ }\n        },\n        \"string\": {\n            \"class\": \"java.lang.String\"\
+      ,\n            \"aggregateFunction\": {\n                \"class\": \"uk.gov.gchq.koryphe.impl.binaryoperator.First\"\
+      \n            }\n        },\n        \"riskFactor\": {\n            \"class\"\
+      : \"java.lang.Double\",\n            \"aggregateFunction\": {\n            \
+      \    \"class\": \"uk.gov.gchq.koryphe.impl.binaryoperator.First\"\n        \
+      \    }\n        },\n        \"true\": {\n            \"class\": \"java.lang.Boolean\"\
+      ,\n            \"validateFunctions\": [\n                {\n               \
+      \     \"class\": \"uk.gov.gchq.koryphe.impl.predicate.IsTrue\"\n           \
+      \     }\n            ]\n        },\n        \"timestamp.set\": {\n         \
+      \   \"class\": \"uk.gov.gchq.gaffer.time.RBMBackedTimestampSet\",\n        \
+      \    \"aggregateFunction\": {\n                \"class\": \"uk.gov.gchq.gaffer.time.binaryoperator.RBMBackedTimestampSetAggregator\"\
+      \n            },\n            \"serialiser\": {\n                \"class\":\
+      \ \"uk.gov.gchq.gaffer.time.serialisation.RBMBackedTimestampSetSerialiser\"\n\
+      \            }\n        },\n        \"registrar\": {\n            \"class\"\
+      : \"java.lang.Integer\",\n            \"aggregateFunction\": {\n           \
+      \     \"class\": \"uk.gov.gchq.koryphe.impl.binaryoperator.First\"\n       \
+      \     }\n        }\n    }\n}\n"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: gaffer-threat
+      component: gaffer
+    name: threat-schema
+    namespace: cyberapocalypse
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: elasticsearch
+      component: elasticsearch
+      instance: elasticsearch-0000
+    name: elasticsearch-0000
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: elasticsearch
+        component: elasticsearch
+        instance: elasticsearch-0000
+    template:
+      metadata:
+        labels:
+          app: elasticsearch
+          component: elasticsearch
+          instance: elasticsearch-0000
+      spec:
+        containers:
+        - command:
+          - bash
+          - -c
+          - sysctl -w vm.max_map_count=262144; chown -R elasticsearch:elasticsearch
+            /usr/share/elasticsearch/data; /usr/local/bin/docker-entrypoint.sh
+          env:
+          - name: discovery.type
+            value: single-node
+          - name: ES_JAVA_OPTS
+            value: -Xms128M -Xmx256M
+          image: elasticsearch:7.7.1
+          name: elasticsearch
+          ports:
+          - containerPort: 9200
+            name: elasticsearch
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 512M
+            requests:
+              cpu: '0.1'
+              memory: 512M
+          volumeMounts:
+          - mountPath: /usr/share/elasticsearch/data
+            name: data
+            readOnly: false
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: elasticsearch-0000
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: elasticsearch
+      component: elasticsearch
+    name: elasticsearch
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: elasticsearch
+      port: 9200
+      protocol: TCP
+      targetPort: 9200
+    selector:
+      app: elasticsearch
+      component: elasticsearch
+- apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    labels:
+      app: elasticsearch
+      component: elasticsearch
+    name: elasticsearch
+  parameters:
+    type: pd-ssd
+  provisioner: kubernetes.io/gce-pd
+  reclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: elasticsearch
+      component: elasticsearch
+    name: elasticsearch-0000
+    namespace: cyberapocalypse
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10G
+    storageClassName: elasticsearch
+    volumeMode: Filesystem
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: kibana
+      component: kibana
+      instance: kibana
+    name: kibana
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: kibana
+        component: kibana
+        instance: kibana
+    template:
+      metadata:
+        labels:
+          app: kibana
+          component: kibana
+          instance: kibana
+      spec:
+        containers:
+        - env:
+          - name: ELASTICSEARCH_URL
+            value: http://elasticsearch:9200/
+          - name: SERVER_BASEPATH
+            value: /kibana
+          - name: NODE_OPTIONS
+            value: --max_old_space_size=300
+          image: kibana:7.7.1
+          name: kibana
+          ports:
+          - containerPort: 5601
+            name: kibana
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 512M
+            requests:
+              cpu: '0.1'
+              memory: 512M
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: kibana
+      component: kibana
+    name: kibana
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: kibana
+      port: 5601
+      protocol: TCP
+      targetPort: 5601
+    selector:
+      app: kibana
+      component: kibana
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: cassandra
+      component: cassandra
+      instance: cassandra-0000
+    name: cassandra-0000
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: cassandra
+        component: cassandra
+        instance: cassandra-0000
+    template:
+      metadata:
+        labels:
+          app: cassandra
+          component: cassandra
+          instance: cassandra-0000
+      spec:
+        containers:
+        - env:
+          - name: JVM_OPTS
+            value: -Xms64M -Xmx256M
+          image: cassandra:3.11.6
+          name: cassandra
+          ports:
+          - containerPort: 9042
+            name: cassandra
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 512M
+            requests:
+              cpu: '0.1'
+              memory: 512M
+          volumeMounts:
+          - mountPath: /var/lib/cassandra
+            name: data
+            readOnly: false
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: cassandra-0000
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: cassandra
+      component: cassandra
+    name: cassandra
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: cassandra
+      port: 9042
+      protocol: TCP
+      targetPort: 9042
+    selector:
+      app: cassandra
+      component: cassandra
+- apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    labels:
+      app: cassandra
+      component: cassandra
+    name: cassandra
+  parameters:
+    type: pd-ssd
+  provisioner: kubernetes.io/gce-pd
+  reclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: cassandra
+      component: cassandra
+    name: cassandra-0000
+    namespace: cyberapocalypse
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10G
+    storageClassName: cassandra
+    volumeMode: Filesystem
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: pulsar
+      component: pulsar
+      instance: pulsar-0000
+    name: pulsar-0000
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: pulsar
+        component: pulsar
+        instance: pulsar-0000
+    template:
+      metadata:
+        labels:
+          app: pulsar
+          component: pulsar
+          instance: pulsar-0000
+      spec:
+        containers:
+        - command:
+          - bin/pulsar
+          - standalone
+          env:
+          - name: PULSAR_MEM
+            value: -Xms128M -Xmx300M
+          image: apachepulsar/pulsar:2.5.1
+          name: pulsar
+          ports:
+          - containerPort: 6650
+            name: pulsar
+          - containerPort: 8080
+            name: websocket
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 700M
+            requests:
+              cpu: '0.1'
+              memory: 700M
+          volumeMounts:
+          - mountPath: /pulsar/data
+            name: data
+            readOnly: false
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: pulsar-0000
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: pulsar
+      component: pulsar
+    name: exchange
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: pulsar
+      port: 6650
+      protocol: TCP
+      targetPort: 6650
+    - name: websocket
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: pulsar
+      component: pulsar
+- apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    labels:
+      app: pulsar
+      component: pulsar
+    name: pulsar
+  parameters:
+    type: pd-ssd
+  provisioner: kubernetes.io/gce-pd
+  reclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: pulsar
+      component: pulsar
+    name: pulsar-0000
+    namespace: cyberapocalypse
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10G
+    storageClassName: pulsar
+    volumeMode: Filesystem
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: pulsar-manager
+      component: pulsar
+      instance: pulsar-manager
+    name: pulsar-manager
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: pulsar-manager
+        component: pulsar
+        instance: pulsar-manager
+    template:
+      metadata:
+        labels:
+          app: pulsar-manager
+          component: pulsar
+          instance: pulsar-manager
+      spec:
+        containers:
+        - env:
+          - name: DRIVER_CLASS_NAME
+            value: org.postgresql.Driver
+          - name: URL
+            value: jdbc:postgresql://127.0.0.1:5432/pulsar_manager
+          - name: USERNAME
+            value: pulsar
+          - name: PASSWORD
+            value: pulsar
+          - name: LOG_LEVEL
+            value: DEBUG
+          - name: REDIRECT_HOST
+            value: http://127.0.0.1
+          - name: REDIRECT_PORT
+            value: '8080'
+          image: apachepulsar/pulsar-manager:v0.1.0
+          name: pulsar-manager
+          ports:
+          - containerPort: 9527
+            name: ui
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 512M
+            requests:
+              cpu: '0.1'
+              memory: 512M
+          volumeMounts:
+          - mountPath: /data
+            name: data
+            readOnly: false
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: pulsar-manager
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: pulsar-manager
+      component: pulsar
+    name: pulsar-manager
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: ui
+      port: 9527
+      protocol: TCP
+      targetPort: 9527
+    selector:
+      app: pulsar-manager
+      component: pulsar
+- apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    labels:
+      app: pulsar-manager
+      component: pulsar
+    name: pulsar-manager
+  parameters:
+    type: pd-ssd
+  provisioner: kubernetes.io/gce-pd
+  reclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: pulsar-manager
+      component: pulsar
+    name: pulsar-manager
+    namespace: cyberapocalypse
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10G
+    storageClassName: pulsar-manager
+    volumeMode: Filesystem
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: grafana
+      component: grafana
+      instance: grafana
+    name: grafana
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: grafana
+        component: grafana
+        instance: grafana
+    template:
+      metadata:
+        labels:
+          app: grafana
+          component: grafana
+          instance: grafana
+      spec:
+        containers:
+        - env:
+          - name: GF_SERVER_ROOT_URL
+            value: https://portal.portal.cyberapocalypse.co.uk/grafana
+          - name: GF_AUTH_ANONYMOUS_ENABLED
+            value: 'true'
+          - name: GF_ORG_NAME
+            value: cybermaggedon
+          - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+            value: Admin
+          image: grafana/grafana:7.0.3
+          name: grafana
+          ports:
+          - containerPort: 3000
+            name: grafana
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 256M
+            requests:
+              cpu: '0.05'
+              memory: 256M
+          volumeMounts:
+          - mountPath: /etc/grafana/provisioning/datasources
+            name: datasource-provision
+            readOnly: false
+          - mountPath: /etc/grafana/provisioning/dashboards
+            name: dashboard-provision
+            readOnly: false
+          - mountPath: /var/lib/grafana/dashboards
+            name: dashboards
+            readOnly: false
+        volumes:
+        - configMap:
+            name: grafana-dashboard-prov
+          name: dashboard-provision
+        - configMap:
+            name: grafana-dashboards
+          name: dashboards
+        - configMap:
+            name: grafana-datasource-prov
+          name: datasource-provision
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: grafana
+      component: grafana
+    name: grafana
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: grafana
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+    selector:
+      app: grafana
+      component: grafana
+- apiVersion: v1
+  data:
+    dashboard.yml: "apiVersion: 1\n\nproviders:\n\n  - name: 'cybermaggedon'\n   \
+      \ type: file\n    disableDeletion: false\n    editable: true\n    updateIntervalSeconds:\
+      \ 30\n    allowUiUpdates: false\n    options:\n      path: /var/lib/grafana/dashboards\n\
+      \n"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: grafana
+      component: grafana
+    name: grafana-dashboard-prov
+    namespace: cyberapocalypse
+- apiVersion: v1
+  data:
+    datasource.yml: "apiVersion: 1\n\ndatasources:\n  - name: Prometheus\n    type:\
+      \ prometheus\n    access: proxy\n    url: http://prometheus:9090\n    basicAuth:\
+      \ false\n    isDefault: true\n    readOnly: false\n\n"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: grafana
+      component: grafana
+    name: grafana-datasource-prov
+    namespace: cyberapocalypse
+- apiVersion: v1
+  data:
+    dashboard.json: "{\n  \"annotations\": {\n    \"list\": [\n      {\n        \"\
+      builtIn\": 1,\n        \"datasource\": \"-- Grafana --\",\n        \"enable\"\
+      : true,\n        \"hide\": true,\n        \"iconColor\": \"rgba(0, 211, 255,\
+      \ 1)\",\n        \"name\": \"Annotations & Alerts\",\n        \"type\": \"dashboard\"\
+      \n      }\n    ]\n  },\n  \"editable\": true,\n  \"gnetId\": null,\n  \"graphTooltip\"\
+      : 0,\n  \"id\": 1,\n  \"links\": [],\n  \"panels\": [\n    {\n      \"aliasColors\"\
+      : {},\n      \"bars\": false,\n      \"dashLength\": 10,\n      \"dashes\":\
+      \ false,\n      \"datasource\": null,\n      \"fieldConfig\": {\n        \"\
+      defaults\": {\n          \"custom\": {}\n        },\n        \"overrides\":\
+      \ []\n      },\n      \"fill\": 1,\n      \"fillGradient\": 0,\n      \"gridPos\"\
+      : {\n        \"h\": 7,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\"\
+      : 0\n      },\n      \"hiddenSeries\": false,\n      \"id\": 14,\n      \"legend\"\
+      : {\n        \"avg\": false,\n        \"current\": false,\n        \"max\":\
+      \ false,\n        \"min\": false,\n        \"show\": true,\n        \"total\"\
+      : false,\n        \"values\": false\n      },\n      \"lines\": true,\n    \
+      \  \"linewidth\": 1,\n      \"nullPointMode\": \"null\",\n      \"options\"\
+      : {\n        \"dataLinks\": []\n      },\n      \"percentage\": false,\n   \
+      \   \"pointradius\": 2,\n      \"points\": false,\n      \"renderer\": \"flot\"\
+      ,\n      \"seriesOverrides\": [],\n      \"spaceLength\": 10,\n      \"stack\"\
+      : false,\n      \"steppedLine\": false,\n      \"targets\": [\n        {\n \
+      \         \"expr\": \"rate(event_total[1m])\",\n          \"interval\": \"\"\
+      ,\n          \"legendFormat\": \"\",\n          \"refId\": \"A\"\n        }\n\
+      \      ],\n      \"thresholds\": [],\n      \"timeFrom\": null,\n      \"timeRegions\"\
+      : [],\n      \"timeShift\": null,\n      \"title\": \"Events processed\",\n\
+      \      \"tooltip\": {\n        \"shared\": true,\n        \"sort\": 0,\n   \
+      \     \"value_type\": \"individual\"\n      },\n      \"type\": \"graph\",\n\
+      \      \"xaxis\": {\n        \"buckets\": null,\n        \"mode\": \"time\"\
+      ,\n        \"name\": null,\n        \"show\": true,\n        \"values\": []\n\
+      \      },\n      \"yaxes\": [\n        {\n          \"format\": \"short\",\n\
+      \          \"label\": null,\n          \"logBase\": 1,\n          \"max\": null,\n\
+      \          \"min\": null,\n          \"show\": true\n        },\n        {\n\
+      \          \"format\": \"short\",\n          \"label\": null,\n          \"\
+      logBase\": 1,\n          \"max\": null,\n          \"min\": null,\n        \
+      \  \"show\": true\n        }\n      ],\n      \"yaxis\": {\n        \"align\"\
+      : false,\n        \"alignLevel\": null\n      }\n    },\n    {\n      \"aliasColors\"\
+      : {},\n      \"bars\": false,\n      \"dashLength\": 10,\n      \"dashes\":\
+      \ false,\n      \"datasource\": null,\n      \"fieldConfig\": {\n        \"\
+      defaults\": {\n          \"custom\": {}\n        },\n        \"overrides\":\
+      \ []\n      },\n      \"fill\": 1,\n      \"fillGradient\": 0,\n      \"gridPos\"\
+      : {\n        \"h\": 7,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\"\
+      : 0\n      },\n      \"hiddenSeries\": false,\n      \"id\": 4,\n      \"legend\"\
+      : {\n        \"avg\": false,\n        \"current\": false,\n        \"max\":\
+      \ false,\n        \"min\": false,\n        \"show\": true,\n        \"total\"\
+      : false,\n        \"values\": false\n      },\n      \"lines\": true,\n    \
+      \  \"linewidth\": 1,\n      \"nullPointMode\": \"null\",\n      \"options\"\
+      : {\n        \"dataLinks\": []\n      },\n      \"percentage\": false,\n   \
+      \   \"pointradius\": 2,\n      \"points\": false,\n      \"renderer\": \"flot\"\
+      ,\n      \"seriesOverrides\": [],\n      \"spaceLength\": 10,\n      \"stack\"\
+      : false,\n      \"steppedLine\": false,\n      \"targets\": [\n        {\n \
+      \         \"expr\": \"rate(hits_on_category[1m])\",\n          \"interval\"\
+      : \"\",\n          \"legendFormat\": \"\",\n          \"refId\": \"A\"\n   \
+      \     }\n      ],\n      \"thresholds\": [],\n      \"timeFrom\": null,\n  \
+      \    \"timeRegions\": [],\n      \"timeShift\": null,\n      \"title\": \"Indicators\"\
+      ,\n      \"tooltip\": {\n        \"shared\": true,\n        \"sort\": 0,\n \
+      \       \"value_type\": \"individual\"\n      },\n      \"type\": \"graph\"\
+      ,\n      \"xaxis\": {\n        \"buckets\": null,\n        \"mode\": \"time\"\
+      ,\n        \"name\": null,\n        \"show\": true,\n        \"values\": []\n\
+      \      },\n      \"yaxes\": [\n        {\n          \"format\": \"short\",\n\
+      \          \"label\": null,\n          \"logBase\": 1,\n          \"max\": null,\n\
+      \          \"min\": null,\n          \"show\": true\n        },\n        {\n\
+      \          \"format\": \"short\",\n          \"label\": null,\n          \"\
+      logBase\": 1,\n          \"max\": null,\n          \"min\": null,\n        \
+      \  \"show\": true\n        }\n      ],\n      \"yaxis\": {\n        \"align\"\
+      : false,\n        \"alignLevel\": null\n      }\n    },\n    {\n      \"aliasColors\"\
+      : {},\n      \"bars\": false,\n      \"dashLength\": 10,\n      \"dashes\":\
+      \ false,\n      \"datasource\": null,\n      \"fieldConfig\": {\n        \"\
+      defaults\": {\n          \"custom\": {}\n        },\n        \"overrides\":\
+      \ []\n      },\n      \"fill\": 1,\n      \"fillGradient\": 0,\n      \"gridPos\"\
+      : {\n        \"h\": 6,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\"\
+      : 7\n      },\n      \"hiddenSeries\": false,\n      \"id\": 6,\n      \"legend\"\
+      : {\n        \"avg\": false,\n        \"current\": false,\n        \"max\":\
+      \ false,\n        \"min\": false,\n        \"show\": true,\n        \"total\"\
+      : false,\n        \"values\": false\n      },\n      \"lines\": true,\n    \
+      \  \"linewidth\": 1,\n      \"nullPointMode\": \"null\",\n      \"options\"\
+      : {\n        \"dataLinks\": []\n      },\n      \"percentage\": false,\n   \
+      \   \"pointradius\": 2,\n      \"points\": false,\n      \"renderer\": \"flot\"\
+      ,\n      \"seriesOverrides\": [],\n      \"spaceLength\": 10,\n      \"stack\"\
+      : false,\n      \"steppedLine\": false,\n      \"targets\": [\n        {\n \
+      \         \"expr\": \"rate(cassandra_loaded[1m])\",\n          \"interval\"\
+      : \"\",\n          \"legendFormat\": \"\",\n          \"refId\": \"A\"\n   \
+      \     }\n      ],\n      \"thresholds\": [],\n      \"timeFrom\": null,\n  \
+      \    \"timeRegions\": [],\n      \"timeShift\": null,\n      \"title\": \"Cassandra\
+      \ load\",\n      \"tooltip\": {\n        \"shared\": true,\n        \"sort\"\
+      : 0,\n        \"value_type\": \"individual\"\n      },\n      \"type\": \"graph\"\
+      ,\n      \"xaxis\": {\n        \"buckets\": null,\n        \"mode\": \"time\"\
+      ,\n        \"name\": null,\n        \"show\": true,\n        \"values\": []\n\
+      \      },\n      \"yaxes\": [\n        {\n          \"format\": \"short\",\n\
+      \          \"label\": null,\n          \"logBase\": 1,\n          \"max\": null,\n\
+      \          \"min\": null,\n          \"show\": true\n        },\n        {\n\
+      \          \"format\": \"short\",\n          \"label\": null,\n          \"\
+      logBase\": 1,\n          \"max\": null,\n          \"min\": null,\n        \
+      \  \"show\": true\n        }\n      ],\n      \"yaxis\": {\n        \"align\"\
+      : false,\n        \"alignLevel\": null\n      }\n    },\n    {\n      \"aliasColors\"\
+      : {},\n      \"bars\": false,\n      \"dashLength\": 10,\n      \"dashes\":\
+      \ false,\n      \"datasource\": null,\n      \"fieldConfig\": {\n        \"\
+      defaults\": {\n          \"custom\": {}\n        },\n        \"overrides\":\
+      \ []\n      },\n      \"fill\": 1,\n      \"fillGradient\": 0,\n      \"gridPos\"\
+      : {\n        \"h\": 6,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\"\
+      : 7\n      },\n      \"hiddenSeries\": false,\n      \"id\": 8,\n      \"legend\"\
+      : {\n        \"avg\": false,\n        \"current\": false,\n        \"max\":\
+      \ false,\n        \"min\": false,\n        \"show\": true,\n        \"total\"\
+      : false,\n        \"values\": false\n      },\n      \"lines\": true,\n    \
+      \  \"linewidth\": 1,\n      \"nullPointMode\": \"null\",\n      \"options\"\
+      : {\n        \"dataLinks\": []\n      },\n      \"percentage\": false,\n   \
+      \   \"pointradius\": 2,\n      \"points\": false,\n      \"renderer\": \"flot\"\
+      ,\n      \"seriesOverrides\": [],\n      \"spaceLength\": 10,\n      \"stack\"\
+      : false,\n      \"steppedLine\": false,\n      \"targets\": [\n        {\n \
+      \         \"expr\": \"rate(elasticsearch_succeeded_sum[1m])\",\n          \"\
+      interval\": \"\",\n          \"legendFormat\": \"\",\n          \"refId\": \"\
+      A\"\n        },\n        {\n          \"expr\": \"rate(elasticsearch_failed_sum[1m])\"\
+      ,\n          \"interval\": \"\",\n          \"legendFormat\": \"\",\n      \
+      \    \"refId\": \"B\"\n        }\n      ],\n      \"thresholds\": [],\n    \
+      \  \"timeFrom\": null,\n      \"timeRegions\": [],\n      \"timeShift\": null,\n\
+      \      \"title\": \"ElasticSearch load\",\n      \"tooltip\": {\n        \"\
+      shared\": true,\n        \"sort\": 0,\n        \"value_type\": \"individual\"\
+      \n      },\n      \"type\": \"graph\",\n      \"xaxis\": {\n        \"buckets\"\
+      : null,\n        \"mode\": \"time\",\n        \"name\": null,\n        \"show\"\
+      : true,\n        \"values\": []\n      },\n      \"yaxes\": [\n        {\n \
+      \         \"format\": \"short\",\n          \"label\": null,\n          \"logBase\"\
+      : 1,\n          \"max\": null,\n          \"min\": null,\n          \"show\"\
+      : true\n        },\n        {\n          \"format\": \"short\",\n          \"\
+      label\": null,\n          \"logBase\": 1,\n          \"max\": null,\n      \
+      \    \"min\": null,\n          \"show\": true\n        }\n      ],\n      \"\
+      yaxis\": {\n        \"align\": false,\n        \"alignLevel\": null\n      }\n\
+      \    },\n    {\n      \"aliasColors\": {},\n      \"bars\": false,\n      \"\
+      dashLength\": 10,\n      \"dashes\": false,\n      \"datasource\": null,\n \
+      \     \"fieldConfig\": {\n        \"defaults\": {\n          \"custom\": {}\n\
+      \        },\n        \"overrides\": []\n      },\n      \"fill\": 1,\n     \
+      \ \"fillGradient\": 0,\n      \"gridPos\": {\n        \"h\": 6,\n        \"\
+      w\": 12,\n        \"x\": 0,\n        \"y\": 13\n      },\n      \"hiddenSeries\"\
+      : false,\n      \"id\": 10,\n      \"legend\": {\n        \"avg\": false,\n\
+      \        \"current\": false,\n        \"max\": false,\n        \"min\": false,\n\
+      \        \"show\": true,\n        \"total\": false,\n        \"values\": false\n\
+      \      },\n      \"lines\": true,\n      \"linewidth\": 1,\n      \"nullPointMode\"\
+      : \"null\",\n      \"options\": {\n        \"dataLinks\": []\n      },\n   \
+      \   \"percentage\": false,\n      \"pointradius\": 2,\n      \"points\": false,\n\
+      \      \"renderer\": \"flot\",\n      \"seriesOverrides\": [],\n      \"spaceLength\"\
+      : 10,\n      \"stack\": false,\n      \"steppedLine\": false,\n      \"targets\"\
+      : [\n        {\n          \"expr\": \"pulsar_rate_in\",\n          \"interval\"\
+      : \"\",\n          \"legendFormat\": \"\",\n          \"refId\": \"A\"\n   \
+      \     }\n      ],\n      \"thresholds\": [],\n      \"timeFrom\": null,\n  \
+      \    \"timeRegions\": [],\n      \"timeShift\": null,\n      \"title\": \"Pulsar\
+      \ in\",\n      \"tooltip\": {\n        \"shared\": true,\n        \"sort\":\
+      \ 0,\n        \"value_type\": \"individual\"\n      },\n      \"type\": \"graph\"\
+      ,\n      \"xaxis\": {\n        \"buckets\": null,\n        \"mode\": \"time\"\
+      ,\n        \"name\": null,\n        \"show\": true,\n        \"values\": []\n\
+      \      },\n      \"yaxes\": [\n        {\n          \"format\": \"short\",\n\
+      \          \"label\": null,\n          \"logBase\": 1,\n          \"max\": null,\n\
+      \          \"min\": null,\n          \"show\": true\n        },\n        {\n\
+      \          \"format\": \"short\",\n          \"label\": null,\n          \"\
+      logBase\": 1,\n          \"max\": null,\n          \"min\": null,\n        \
+      \  \"show\": true\n        }\n      ],\n      \"yaxis\": {\n        \"align\"\
+      : false,\n        \"alignLevel\": null\n      }\n    },\n    {\n      \"aliasColors\"\
+      : {},\n      \"bars\": false,\n      \"dashLength\": 10,\n      \"dashes\":\
+      \ false,\n      \"datasource\": null,\n      \"fieldConfig\": {\n        \"\
+      defaults\": {\n          \"custom\": {}\n        },\n        \"overrides\":\
+      \ []\n      },\n      \"fill\": 1,\n      \"fillGradient\": 0,\n      \"gridPos\"\
+      : {\n        \"h\": 6,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\"\
+      : 13\n      },\n      \"hiddenSeries\": false,\n      \"id\": 12,\n      \"\
+      legend\": {\n        \"avg\": false,\n        \"current\": false,\n        \"\
+      max\": false,\n        \"min\": false,\n        \"show\": true,\n        \"\
+      total\": false,\n        \"values\": false\n      },\n      \"lines\": true,\n\
+      \      \"linewidth\": 1,\n      \"nullPointMode\": \"null\",\n      \"options\"\
+      : {\n        \"dataLinks\": []\n      },\n      \"percentage\": false,\n   \
+      \   \"pointradius\": 2,\n      \"points\": false,\n      \"renderer\": \"flot\"\
+      ,\n      \"seriesOverrides\": [],\n      \"spaceLength\": 10,\n      \"stack\"\
+      : false,\n      \"steppedLine\": false,\n      \"targets\": [\n        {\n \
+      \         \"expr\": \"pulsar_rate_out\",\n          \"interval\": \"\",\n  \
+      \        \"legendFormat\": \"\",\n          \"refId\": \"A\"\n        }\n  \
+      \    ],\n      \"thresholds\": [],\n      \"timeFrom\": null,\n      \"timeRegions\"\
+      : [],\n      \"timeShift\": null,\n      \"title\": \"Pulsar out\",\n      \"\
+      tooltip\": {\n        \"shared\": true,\n        \"sort\": 0,\n        \"value_type\"\
+      : \"individual\"\n      },\n      \"type\": \"graph\",\n      \"xaxis\": {\n\
+      \        \"buckets\": null,\n        \"mode\": \"time\",\n        \"name\":\
+      \ null,\n        \"show\": true,\n        \"values\": []\n      },\n      \"\
+      yaxes\": [\n        {\n          \"format\": \"short\",\n          \"label\"\
+      : null,\n          \"logBase\": 1,\n          \"max\": null,\n          \"min\"\
+      : null,\n          \"show\": true\n        },\n        {\n          \"format\"\
+      : \"short\",\n          \"label\": null,\n          \"logBase\": 1,\n      \
+      \    \"max\": null,\n          \"min\": null,\n          \"show\": true\n  \
+      \      }\n      ],\n      \"yaxis\": {\n        \"align\": false,\n        \"\
+      alignLevel\": null\n      }\n    },\n    {\n      \"aliasColors\": {},\n   \
+      \   \"bars\": false,\n      \"dashLength\": 10,\n      \"dashes\": false,\n\
+      \      \"datasource\": null,\n      \"fieldConfig\": {\n        \"defaults\"\
+      : {\n          \"custom\": {}\n        },\n        \"overrides\": []\n     \
+      \ },\n      \"fill\": 1,\n      \"fillGradient\": 0,\n      \"gridPos\": {\n\
+      \        \"h\": 7,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 19\n\
+      \      },\n      \"hiddenSeries\": false,\n      \"id\": 2,\n      \"legend\"\
+      : {\n        \"avg\": false,\n        \"current\": false,\n        \"max\":\
+      \ false,\n        \"min\": false,\n        \"show\": true,\n        \"total\"\
+      : false,\n        \"values\": false\n      },\n      \"lines\": true,\n    \
+      \  \"linewidth\": 1,\n      \"nullPointMode\": \"null\",\n      \"options\"\
+      : {\n        \"dataLinks\": []\n      },\n      \"percentage\": false,\n   \
+      \   \"pointradius\": 2,\n      \"points\": false,\n      \"renderer\": \"flot\"\
+      ,\n      \"seriesOverrides\": [],\n      \"spaceLength\": 10,\n      \"stack\"\
+      : false,\n      \"steppedLine\": false,\n      \"targets\": [\n        {\n \
+      \         \"expr\": \"rate(event_processing_time_sum[1m])\",\n          \"interval\"\
+      : \"\",\n          \"legendFormat\": \"\",\n          \"refId\": \"A\"\n   \
+      \     }\n      ],\n      \"thresholds\": [],\n      \"timeFrom\": null,\n  \
+      \    \"timeRegions\": [],\n      \"timeShift\": null,\n      \"title\": \"Event\
+      \ latency\",\n      \"tooltip\": {\n        \"shared\": true,\n        \"sort\"\
+      : 0,\n        \"value_type\": \"individual\"\n      },\n      \"type\": \"graph\"\
+      ,\n      \"xaxis\": {\n        \"buckets\": null,\n        \"mode\": \"time\"\
+      ,\n        \"name\": null,\n        \"show\": true,\n        \"values\": []\n\
+      \      },\n      \"yaxes\": [\n        {\n          \"format\": \"short\",\n\
+      \          \"label\": null,\n          \"logBase\": 1,\n          \"max\": null,\n\
+      \          \"min\": null,\n          \"show\": true\n        },\n        {\n\
+      \          \"format\": \"short\",\n          \"label\": null,\n          \"\
+      logBase\": 1,\n          \"max\": null,\n          \"min\": null,\n        \
+      \  \"show\": true\n        }\n      ],\n      \"yaxis\": {\n        \"align\"\
+      : false,\n        \"alignLevel\": null\n      }\n    }\n  ],\n  \"schemaVersion\"\
+      : 25,\n  \"style\": \"dark\",\n  \"tags\": [],\n  \"templating\": {\n    \"\
+      list\": []\n  },\n  \"time\": {\n    \"from\": \"now-30m\",\n    \"to\": \"\
+      now\"\n  },\n  \"timepicker\": {\n    \"refresh_intervals\": [\n      \"10s\"\
+      ,\n      \"30s\",\n      \"1m\",\n      \"5m\",\n      \"15m\",\n      \"30m\"\
+      ,\n      \"1h\",\n      \"2h\",\n      \"1d\"\n    ]\n  },\n  \"timezone\":\
+      \ \"\",\n  \"title\": \"Metrics\",\n  \"uid\": \"UhSsl6ZGk\",\n  \"version\"\
+      : 4\n}\n"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: grafana
+      component: grafana
+    name: grafana-dashboards
+    namespace: cyberapocalypse
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: prometheus
+      component: prometheus
+      instance: prometheus
+    name: prometheus
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: prometheus
+        component: prometheus
+        instance: prometheus
+    template:
+      metadata:
+        labels:
+          app: prometheus
+          component: prometheus
+          instance: prometheus
+      spec:
+        containers:
+        - args:
+          - --web.external-url=https://portal.portal.cyberapocalypse.co.uk/prometheus/
+          - --web.route-prefix=/
+          - --config.file=/etc/prometheus/prometheus.yml
+          - --storage.tsdb.path=/prometheus
+          - --web.console.libraries=/usr/share/prometheus/console_libraries
+          - --web.console.templates=/usr/share/prometheus/consoles
+          env: []
+          image: prom/prometheus:v2.19.1
+          name: prometheus
+          ports:
+          - containerPort: 9090
+            name: prometheus
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 256M
+            requests:
+              cpu: '0.05'
+              memory: 256M
+          volumeMounts:
+          - mountPath: /etc/prometheus
+            name: config
+            readOnly: true
+        serviceAccountName: prometheus
+        volumes:
+        - configMap:
+            name: prometheus-config
+          name: config
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: prometheus
+      component: prometheus
+    name: prometheus
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: prometheus
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+    selector:
+      app: prometheus
+      component: prometheus
+- apiVersion: v1
+  data:
+    prometheus.yml: "global:\n\n  # Set the scrape interval to every 15 seconds. Default\
+      \ is every 1 minute.\n  scrape_interval:     15s \n\n  # Evaluate rules every\
+      \ 15 seconds. The default is every 1 minute.\n  evaluation_interval: 15s \n\n\
+      \  # scrape_timeout is set to the global default (10s).\n\n# Alertmanager configuration\n\
+      alerting:\n  alertmanagers:\n  - static_configs:\n    - targets:\n      # -\
+      \ alertmanager:9093\n\n# Load rules once and periodically evaluate them according\
+      \ to the global 'evaluation_interval'.\nrule_files:\n  # - \"first_rules.yml\"\
+      \n  # - \"second_rules.yml\"\n\n# A scrape configuration containing exactly\
+      \ one endpoint to scrape:\n# Here it's Prometheus itself.\nscrape_configs:\n\
+      \n# The job name is added as a label `job=<job_name>` to any timeseries\n# scraped\
+      \ from this config.\n- job_name: 'kubernetes-service-endpoints'\n\n  kubernetes_sd_configs:\n\
+      \  - role: endpoints\n    namespaces:\n      names:\n      - cyberapocalypse\n\
+      \n  relabel_configs:\n\n  # Relabel to scrape only endpoints that have\n  #\
+      \ \"prometheus.io/scrape = true\" annotation.\n#   - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]\n\
+      #     action: keep\n#     regex: true\n\n  # Relabel to customize metric path\
+      \ based on endpoints\n  # \"prometheis.io/metric_path = <metric path>\" annotation.\n\
+      \  - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_metric_path]\n\
+      \    action: replace\n    target_label: __metrics_path__\n    regex: (.+)\n\n\
+      \  # Relabel to scrape only single, desired port for the service based\n  #\
+      \ on endpoints \"prometheus.io/scrape_port = <port>\" annotation.\n  - source_labels:\
+      \ [__address__, __meta_kubernetes_service_annotation_prometheus_io_scrape_port]\n\
+      \    action: replace\n    regex: ([^:]+)(?::\\d+)?;(\\d+)\n    replacement:\
+      \ $1:$2\n    target_label: __address__\n\n  # Example relabel to configure scrape\
+      \ scheme for all service scrape targets\n  # based on endpoints \"prometheus.io/scrape_scheme\
+      \ = <scheme>\" annotation.\n  - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape_scheme]\n\
+      \    action: replace\n    target_label: __scheme__\n    regex: (https?)\n\n\
+      \  - action: labelmap\n    regex: __meta_kubernetes_service_label_(.+)\n\n \
+      \ - source_labels: [__meta_kubernetes_namespace]\n    action: replace\n    target_label:\
+      \ kubernetes_namespace\n\n  - source_labels: [__meta_kubernetes_service_name]\n\
+      \    action: replace\n    target_label: kubernetes_name\n\n"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: prometheus
+      component: prometheus
+    name: prometheus-config
+    namespace: cyberapocalypse
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: prometheus
+    namespace: cyberapocalypse
+  rules:
+  - apiGroups:
+    - ''
+    resources:
+    - nodes
+    - nodes/proxy
+    - services
+    - endpoints
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    resources:
+    - ingresses
+    verbs:
+    - get
+    - list
+    - watch
+  - nonResourceURLs:
+    - /metrics
+    verbs:
+    - get
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: prometheus
+    namespace: cyberapocalypse
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: prometheus
+    namespace: cyberapocalypse
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: prometheus
+  subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: cyberapocalypse
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: cybermon
+      component: cybermon
+      instance: cybermon
+    name: cybermon
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: cybermon
+        component: cybermon
+        instance: cybermon
+    template:
+      metadata:
+        labels:
+          app: cybermon
+          component: cybermon
+          instance: cybermon
+      spec:
+        containers:
+        - command:
+          - cybermon
+          - -p
+          - '9000'
+          - -c
+          - /usr/local/share/cyberprobe/protostream.lua
+          env:
+          - name: PULSAR_BROKER
+            value: ws://exchange:8080
+          image: docker.io/cybermaggedon/cyberprobe:2.5.1
+          name: cybermon
+          ports:
+          - containerPort: 9000
+            name: etsi
+          - containerPort: 8088
+            name: metrics
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 256M
+            requests:
+              cpu: '0.1'
+              memory: 256M
+          volumeMounts:
+          - mountPath: /usr/local/share/cyberprobe
+            name: config
+            readOnly: false
+        - image: docker.io/cybermaggedon/evs-input:0.4.2
+          name: evs-input
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 128M
+            requests:
+              cpu: '0.1'
+              memory: 128M
+        volumes:
+        - configMap:
+            name: cybermon-config
+          name: config
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: cybermon
+      component: cybermon
+    name: cybermon
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: etsi
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+    - name: metrics
+      port: 8088
+      protocol: TCP
+      targetPort: 8088
+    selector:
+      app: cybermon
+      component: cybermon
+- apiVersion: v1
+  data:
+    protostream.lua: "-- Outputs events as PDUs in a stream.  PDUs are protobuf enoded,\
+      \ and have\n-- a 4-byte length header.\nlocal observer = {}\n\n-- Other modules\
+      \ -----------------------------------------------------------\nlocal os = require(\"\
+      os\")\nlocal json = require(\"json\")\nlocal string = require(\"string\")\n\
+      local socket = require(\"socket\")\nlocal mime = require(\"mime\")\n\n-- Config\
+      \ ------------------------------------------------------------------\n\nlocal\
+      \ default_host = \"localhost\"\nif os.getenv(\"STREAM_HOST\") then\n  host =\
+      \ os.getenv(\"STREAM_HOST\")\nelse\n  host = default_host\nend\n\nlocal default_port\
+      \ = 6789\nif os.getenv(\"STREAM_PORT\") then\n  port = tonumber(os.getenv(\"\
+      STREAM_PORT\"))\nelse\n  port = default_port\nend\n\nprint(\"Host:\" .. host)\n\
+      print(\"Port:\" .. port)\n\nlocal init = function()\n  sender = socket.tcp()\n\
+      \  a = sender:connect(host, port)\n  print(\"Connected.\")\nend\n\n-- Object\
+      \ submission function - just pushes the object onto the queue.\nlocal submit\
+      \ = function(data)\n\n  len = string.len(data)\n\n  lenb = string.char((len\
+      \ >> 24) & 255, (len >> 16) & 255, (len >> 8) & 255,\n    len & 255)\n\n  pdu\
+      \ = lenb .. data\n\n  while true do\n\n    a = sender:send(pdu)\n    if a ~=\
+      \ nil then\n      break\n    end\n\n    print(\"Socket delivery failed, will\
+      \ reconnect.\")\n    socket.select(nil, nil, 1)\n    init()\n\n  end\n\nend\n\
+      \nobserver.event = function(e)\n  submit(e:protobuf())\nend\n\n-- Initialise\n\
+      init()\n\n-- Return the table\nreturn observer\n\n"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: cybermon
+      component: cybermon
+    name: cybermon-config
+    namespace: cyberapocalypse
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: evs-geoip
+      component: analytics
+      instance: evs-geoip
+    name: evs-geoip
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: evs-geoip
+        component: analytics
+        instance: evs-geoip
+    template:
+      metadata:
+        labels:
+          app: evs-geoip
+          component: analytics
+          instance: evs-geoip
+      spec:
+        containers:
+        - env:
+          - name: PULSAR_BROKER
+            value: pulsar://exchange:6650
+          image: docker.io/cybermaggedon/evs-geoip:0.4.2
+          name: evs-geoip
+          ports:
+          - containerPort: 8088
+            name: metrics
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 128M
+            requests:
+              cpu: '0.05'
+              memory: 128M
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: evs-geoip
+      component: analytics
+    name: evs-geoip
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: metrics
+      port: 8088
+      protocol: TCP
+      targetPort: 8088
+    selector:
+      app: evs-geoip
+      component: analytics
+      instance: evs-geoip
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: evs-detector
+      component: analytics
+      instance: evs-detector
+    name: evs-detector
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: evs-detector
+        component: analytics
+        instance: evs-detector
+    template:
+      metadata:
+        labels:
+          app: evs-detector
+          component: analytics
+          instance: evs-detector
+      spec:
+        containers:
+        - env:
+          - name: PULSAR_BROKER
+            value: pulsar://exchange:6650
+          image: docker.io/cybermaggedon/evs-detector:0.4.2
+          name: evs-detector
+          ports:
+          - containerPort: 8088
+            name: metrics
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 128M
+            requests:
+              cpu: '0.05'
+              memory: 128M
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: evs-detector
+      component: analytics
+    name: evs-detector
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: metrics
+      port: 8088
+      protocol: TCP
+      targetPort: 8088
+    selector:
+      app: evs-detector
+      component: analytics
+      instance: evs-detector
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: evs-elasticsearch
+      component: analytics
+      instance: evs-elasticsearch
+    name: evs-elasticsearch
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: evs-elasticsearch
+        component: analytics
+        instance: evs-elasticsearch
+    template:
+      metadata:
+        labels:
+          app: evs-elasticsearch
+          component: analytics
+          instance: evs-elasticsearch
+      spec:
+        containers:
+        - env:
+          - name: PULSAR_BROKER
+            value: pulsar://exchange:6650
+          - name: ELASTICSEARCH_URL
+            value: http://elasticsearch:9200
+          image: docker.io/cybermaggedon/evs-elasticsearch:0.4.4
+          name: evs-elasticsearch
+          ports:
+          - containerPort: 8088
+            name: metrics
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 128M
+            requests:
+              cpu: '0.05'
+              memory: 128M
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: evs-elasticsearch
+      component: analytics
+    name: evs-elasticsearch
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: metrics
+      port: 8088
+      protocol: TCP
+      targetPort: 8088
+    selector:
+      app: evs-elasticsearch
+      component: analytics
+      instance: evs-elasticsearch
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: evs-threatgraph
+      component: analytics
+      instance: evs-threatgraph
+    name: evs-threatgraph
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: evs-threatgraph
+        component: analytics
+        instance: evs-threatgraph
+    template:
+      metadata:
+        labels:
+          app: evs-threatgraph
+          component: analytics
+          instance: evs-threatgraph
+      spec:
+        containers:
+        - env:
+          - name: PULSAR_BROKER
+            value: pulsar://exchange:6650
+          - name: GAFFER_URL
+            value: http://threat-graph:8080/rest/v2
+          image: docker.io/cybermaggedon/evs-threatgraph:0.4.2
+          name: evs-threatgraph
+          ports:
+          - containerPort: 8088
+            name: metrics
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 128M
+            requests:
+              cpu: '0.05'
+              memory: 128M
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: evs-threatgraph
+      component: analytics
+    name: evs-threatgraph
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: metrics
+      port: 8088
+      protocol: TCP
+      targetPort: 8088
+    selector:
+      app: evs-threatgraph
+      component: analytics
+      instance: evs-threatgraph
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: evs-riskgraph
+      component: analytics
+      instance: evs-riskgraph
+    name: evs-riskgraph
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: evs-riskgraph
+        component: analytics
+        instance: evs-riskgraph
+    template:
+      metadata:
+        labels:
+          app: evs-riskgraph
+          component: analytics
+          instance: evs-riskgraph
+      spec:
+        containers:
+        - env:
+          - name: PULSAR_BROKER
+            value: pulsar://exchange:6650
+          - name: GAFFER_URL
+            value: http://risk-graph:8080/rest/v2
+          image: docker.io/cybermaggedon/evs-riskgraph:0.4.2
+          name: evs-riskgraph
+          ports:
+          - containerPort: 8088
+            name: metrics
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 128M
+            requests:
+              cpu: '0.05'
+              memory: 128M
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: evs-riskgraph
+      component: analytics
+    name: evs-riskgraph
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: metrics
+      port: 8088
+      protocol: TCP
+      targetPort: 8088
+    selector:
+      app: evs-riskgraph
+      component: analytics
+      instance: evs-riskgraph
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: evs-cassandra
+      component: analytics
+      instance: evs-cassandra
+    name: evs-cassandra
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: evs-cassandra
+        component: analytics
+        instance: evs-cassandra
+    template:
+      metadata:
+        labels:
+          app: evs-cassandra
+          component: analytics
+          instance: evs-cassandra
+      spec:
+        containers:
+        - env:
+          - name: PULSAR_BROKER
+            value: pulsar://exchange:6650
+          - name: CASSANDRA_CLUSTER
+            value: cassandra
+          image: docker.io/cybermaggedon/evs-cassandra:0.4.2
+          name: evs-cassandra
+          ports:
+          - containerPort: 8088
+            name: metrics
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 128M
+            requests:
+              cpu: '0.05'
+              memory: 128M
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: evs-cassandra
+      component: analytics
+    name: evs-cassandra
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: metrics
+      port: 8088
+      protocol: TCP
+      targetPort: 8088
+    selector:
+      app: evs-cassandra
+      component: analytics
+      instance: evs-cassandra
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: vouch
+      component: vouch
+      instance: vouch
+    name: vouch
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: vouch
+        component: vouch
+        instance: vouch
+    template:
+      metadata:
+        labels:
+          app: vouch
+          component: vouch
+          instance: vouch
+      spec:
+        containers:
+        - env:
+          - name: VOUCH_PORT
+            value: '9090'
+          - name: VOUCH_LISTEN
+            value: 0.0.0.0
+          - name: VOUCH_COOKIE_DOMAIN
+            value: cyberapocalypse.co.uk
+          - name: VOUCH_ALLOWALLUSERS
+            value: 'true'
+          - name: OAUTH_PROVIDER
+            value: oidc
+          - name: OAUTH_CLIENT_ID
+            value: cyberapocalypse
+          - name: OAUTH_CLIENT_SECRET
+            value: x
+          - name: OAUTH_CALLBACK_URL
+            value: https://portal.portal.cyberapocalypse.co.uk/auth/auth
+          - name: OAUTH_AUTH_URL
+            value: https://accounts.portal.cyberapocalypse.co.uk/auth/realms/cyberapocalypse/protocol/openid-connect/auth
+          - name: OAUTH_TOKEN_URL
+            value: http://keycloak:8080/auth/realms/cyberapocalypse/protocol/openid-connect/token
+          - name: OAUTH_USER_INFO_URL
+            value: http://keycloak:8080/auth/realms/cyberapocalypse/protocol/openid-connect/userinfo
+          - name: OAUTH_SCOPES
+            value: openid,email,profile
+          - name: VOUCH_JWT_SECRET
+            value: asdklajsldjaslkdjalskdjad
+          image: voucher/vouch-proxy:0.16.2
+          name: vouch
+          ports:
+          - containerPort: 9090
+            name: http
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 256M
+            requests:
+              cpu: '0.05'
+              memory: 256M
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: vouch
+      component: vouch
+    name: vouch
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: http
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+    selector:
+      app: vouch
+      component: vouch
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: nginx
+      component: nginx
+      instance: nginx
+    name: nginx
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: nginx
+        component: nginx
+        instance: nginx
+    template:
+      metadata:
+        labels:
+          app: nginx
+          component: nginx
+          instance: nginx
+      spec:
+        containers:
+        - env: []
+          image: nginx:1.19.0
+          name: nginx
+          ports:
+          - containerPort: 443
+            name: https
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 256M
+            requests:
+              cpu: '0.05'
+              memory: 256M
+          volumeMounts:
+          - mountPath: /etc/nginx/conf.d/
+            name: config
+            readOnly: false
+          - mountPath: /etc/tls/portal/
+            name: portal-keys
+            readOnly: false
+          - mountPath: /usr/share/nginx/html/
+            name: pages
+            readOnly: false
+        volumes:
+        - configMap:
+            name: nginx-config
+          name: config
+        - name: portal-keys
+          secret:
+            secretName: portal-keys
+        - configMap:
+            name: web-pages
+          name: pages
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: nginx
+      component: nginx
+    name: portal
+    namespace: cyberapocalypse
+  spec:
+    loadBalancerIP: 35.196.5.207
+    ports:
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 443
+    selector:
+      app: nginx
+      component: nginx
+    type: LoadBalancer
+- apiVersion: v1
+  data:
+    default.conf: "\nserver {\n    listen 443 ssl;\n    server_name portal.portal.cyberapocalypse.co.uk;\n\
+      \n    ssl_certificate /etc/tls/portal/server.crt;\n    ssl_certificate_key /etc/tls/portal/server.key;\n\
+      \n    # https://github.com/vouch/vouch-proxy\n    # send all requests to the\
+      \ `/validate` endpoint for authorization\n    location = /validate {\n\n   \
+      \     # /validate proxies all the requests to lasso\n        # lasso can also\
+      \ run behind the same nginx-revproxy\n        proxy_pass https://portal.portal.cyberapocalypse.co.uk/auth/validate;\n\
+      \n        # lasso only acts on the request headers\n        proxy_pass_request_body\
+      \ off;\n        proxy_set_header Content-Length \"\";\n        # valid user!\n\
+      \        # add X-Vouch-User to the request\n        auth_request_set $auth_resp_x_vouch_user\
+      \ $upstream_http_x_vouch_user;\n\n        # these return values are used by\
+      \ the @error401 call\n        auth_request_set $auth_resp_jwt $upstream_http_x_vouch_jwt;\n\
+      \        auth_request_set $auth_resp_err $upstream_http_x_vouch_err;\n     \
+      \   auth_request_set $auth_resp_failcount $upstream_http_x_vouch_failcount;\n\
+      \    }\n\n    # if validate returns `401 not authorized` then forward the request\
+      \ to the error401block\n    error_page 401 = @error401;\n\n    location @error401\
+      \ {\n        # redirect to vouch proxy for login\n        return 302 https://portal.portal.cyberapocalypse.co.uk/auth/login?url=$scheme://$http_host$request_uri&lasso-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;\n\
+      \    }\n\n    location /auth/ {\n        proxy_pass http://vouch:9090/;\n  \
+      \      # be sure to pass the original host header\n        proxy_set_header\
+      \ Host $http_host;\n    }\n\n    location /grafana/ {\n        auth_request\
+      \ /validate;\n        auth_request_set $auth_user $upstream_http_x_vouch_user;\n\
+      \        proxy_set_header Remote-User $auth_user;\n        proxy_pass http://grafana:3000/;\n\
+      \    }\n\n    location /prometheus/ {\n        auth_request /validate;\n   \
+      \     auth_request_set $auth_user $upstream_http_x_vouch_user;\n        proxy_set_header\
+      \ Remote-User $auth_user;\n        proxy_pass http://prometheus:9090/;\n   \
+      \ }\n\n    location /risk-graph/ {\n        auth_request /validate;\n      \
+      \  auth_request_set $auth_user $upstream_http_x_vouch_user;\n        proxy_set_header\
+      \ Remote-User $auth_user;\n        proxy_pass http://risk-graph:8080/;\n   \
+      \ }\n\n    location /threat-graph/ {\n        proxy_pass http://threat-graph:8080/;\n\
+      \    }\n\n    location /kibana/ {\n        auth_request /validate;\n       \
+      \ auth_request_set $auth_user $upstream_http_x_vouch_user;\n        proxy_set_header\
+      \ Remote-User $auth_user;\n        proxy_pass http://kibana:5601/;\n    }\n\n\
+      \    location /elasticsearch/ {\n        auth_request /validate;\n        auth_request_set\
+      \ $auth_user $upstream_http_x_vouch_user;\n        proxy_set_header Remote-User\
+      \ $auth_user;\n        proxy_pass http://elasticsearch:9200/;\n    }\n\n   \
+      \ location /pulsar-manager/ {\n        auth_request /validate;\n        auth_request_set\
+      \ $auth_user $upstream_http_x_vouch_user;\n        proxy_set_header Remote-User\
+      \ $auth_user;\n        proxy_pass http://pulsar-manager:9527/;\n    }\n\n  \
+      \  location / {\n        auth_request /validate;\n        auth_request_set $auth_user\
+      \ $upstream_http_x_vouch_user;\n        proxy_set_header Remote-User $auth_user;\n\
+      \        root   /usr/share/nginx/html;\n        index  index.html index.htm;\n\
+      \    }\n\n    #error_page  404              /404.html;\n\n    # redirect server\
+      \ error pages to the static page /50x.html\n    #\n    error_page   500 502\
+      \ 503 504  /50x.html;\n    location = /50x.html {\n        root   /usr/share/nginx/html;\n\
+      \    }\n\n}\n\nserver {\n\n    listen 443 ssl;\n    server_name accounts.portal.cyberapocalypse.co.uk;\n\
+      \n    ssl_certificate /etc/tls/portal/server.crt;\n    ssl_certificate_key /etc/tls/portal/server.key;\n\
+      \n    location / {\n        proxy_pass http://keycloak:8080/;\n        proxy_set_header\
+      \ Host $http_host;\n        proxy_set_header X-Real-IP $remote_addr;\n     \
+      \   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header\
+      \ X-Forwarded-Proto $scheme;\n    }\n\n}\n\n"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: nginx
+      component: nginx
+    name: nginx-config
+    namespace: cyberapocalypse
+- apiVersion: v1
+  data:
+    50x.html: "<!DOCTYPE html>\n<html>\n<head>\n<title>Error</title>\n<style>\n  \
+      \  body {\n        width: 35em;\n        margin: 0 auto;\n        font-family:\
+      \ Tahoma, Verdana, Arial, sans-serif;\n    }\n</style>\n</head>\n<body>\n<h1>An\
+      \ error occurred.</h1>\n<p>Sorry, the page you are looking for is currently\
+      \ unavailable.<br/>\nPlease try again later.</p>\n<p>If you are the system administrator\
+      \ of this resource then you should check\nthe error log for details.</p>\n</body>\n\
+      </html>\n"
+    index.html: "<!DOCTYPE html>\n<html>\n\n  <body>\n\n\n    <ul>\n      <li><a href=\"\
+      /grafana/d/UhSsl6ZGk/metrics\">Metrics</a></li>\n      <li><a href=\"/kibana\"\
+      >Kibana</a></li>\n      <li><a href=\"/prometheus\">Prometheus</a></li>\n  \
+      \  </ul>\n\n  </body>\n  \n</script>\n\n\n</html>\n"
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: nginx
+      component: nginx
+    name: web-pages
+    namespace: cyberapocalypse
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: keycloak
+      component: keycloak
+      instance: keycloak
+    name: keycloak
+    namespace: cyberapocalypse
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: keycloak
+        component: keycloak
+        instance: keycloak
+    template:
+      metadata:
+        labels:
+          app: keycloak
+          component: keycloak
+          instance: keycloak
+      spec:
+        containers:
+        - env:
+          - name: KEYCLOAK_USER
+            value: admin
+          - name: KEYCLOAK_PASSWORD
+            value: sldkfjlsdfjsdlfjsldfjlsdkfjdslk
+          - name: JAVA_OPTS
+            value: -Xms128m -Xmx256m
+          - name: KEYCLOAK_FRONTEND_URL
+            value: https://accounts.portal.cyberapocalypse.co.uk/auth
+          - name: PROXY_ADDRESS_FORWARDING
+            value: 'true'
+          image: quay.io/keycloak/keycloak:10.0.2
+          name: keycloak
+          ports:
+          - containerPort: 8080
+            name: http
+          resources:
+            limits:
+              cpu: '1.0'
+              memory: 512M
+            requests:
+              cpu: '0.05'
+              memory: 512M
+          volumeMounts:
+          - mountPath: /opt/jboss/keycloak/standalone/data
+            name: data
+            readOnly: false
+        securityContext:
+          fsGroup: 0
+          runAsGroup: 0
+          runAsUser: 1000
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: keycloak
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: keycloak
+      component: keycloak
+    name: keycloak
+    namespace: cyberapocalypse
+  spec:
+    ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: keycloak
+      component: keycloak
+- apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    labels:
+      app: keycloak
+      component: keycloak
+    name: keycloak
+  parameters:
+    type: pd-ssd
+  provisioner: kubernetes.io/gce-pd
+  reclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: keycloak
+      component: keycloak
+    name: keycloak
+    namespace: cyberapocalypse
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10G
+    storageClassName: keycloak
+    volumeMode: Filesystem
+kind: List
+

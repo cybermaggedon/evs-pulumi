@@ -1,0 +1,3 @@
+name: evs
+runtime: nodejs
+description: Event stream analytics cluster
