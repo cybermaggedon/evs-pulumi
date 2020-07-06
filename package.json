@@ -3,6 +3,7 @@
     "main": "index.js",
     "dependencies": {
         "@pulumi/gcp": "^3.12.0",
+        "@pulumi/keycloak": "^2.3.2",
         "@pulumi/kubernetes": "^2.3.1",
         "@pulumi/pulumi": "^2.0.0",
         "@pulumi/tls": "^2.1.3"

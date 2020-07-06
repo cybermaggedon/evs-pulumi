@@ -2,6 +2,7 @@ const gcp = require("@pulumi/gcp");
 const k8s =  require("@pulumi/kubernetes");
 const pulumi = require("@pulumi/pulumi");
 const tls = require("@pulumi/tls");
+const keycloak = require("@pulumi/keycloak");
 
 var region = "us-east1";
 var zone = "us-east1-d";
@@ -11,6 +12,12 @@ var accountsHost = "accounts.portal." + domain;
 var portalHost = "portal.portal." + domain;
 var dnsZone = "portal";
 var k8sNamespace = "cyberapocalypse";
+
+var keycloakAdminPassword = "CHANGEME";
+
+var initialUser = "user";
+var initialEmail = "user@cyberapocalypse.co.uk";
+var initialPassword = "CHANGEMENOW";
 
 const ipAddress = new gcp.compute.Address("address", {
     name: "evs",
@@ -104,11 +111,16 @@ const caKey = new tls.PrivateKey("ca-key", {
 
 const caCert = new tls.SelfSignedCert("ca-cert", {
     isCaCertificate: true,
-    allowedUses: ["digital_signature"],
+    allowedUses: [
+        "digital_signature", "cert_signing", "ocsp_signing",
+        "crl_signing", "server_auth", "client_auth"
+    ],
     keyAlgorithm: "ECDSA",
     privateKeyPem: caKey.privateKeyPem,
     subjects: [{
-        commonName: "Cyberapocalypse CA"
+        commonName: "Cyberapocalypse CA",
+        organizationalUnit: "Security",
+        organization: "Cyberapocalypse"
     }],
     validityPeriodHours: 10000
 });
@@ -123,6 +135,7 @@ const portalReq = new tls.CertRequest("portal-req", {
     privateKeyPem: portalKey.privateKeyPem,
     subjects: [{
         commonName: "Cyberapocalypse portal cert",
+        organizationalUnit: "Security",
         organization: "Cyberapocalypse"
     }],
     dnsNames: [ portalHost, accountsHost ],
@@ -170,18 +183,76 @@ const portalSecret = new k8s.core.v1.Secret("portal-keys",
 );
 
 exports.caCert = caCert.certPem;
-exports.portalAddress = ipAddress.address;
 
 const extResources = new k8s.yaml.ConfigFile("evs-resources", {
     file: "all.yaml",
-    transformations: [(obj) => {
-        if (obj.kind == "Service" && obj.metadata.name == "portal") {
-            obj.spec.loadBalancerIP = ipAddress.address
-        }
-    }],
-
+    transformations: [
+        (obj) => {
+            if (obj.kind == "Service" && obj.metadata.name == "portal") {
+                obj.spec.loadBalancerIP = ipAddress.address
+             }
+        },
+        (obj) => {
+            if (obj.kind == "Deployment" && obj.metadata.name == "keycloak") {
+                obj.spec.template.spec.containers[0].env[1].value =
+                    keycloakAdminPassword;
+            }
+        },
+    ],
 },
 {
     provider: clusterProvider
 });
+
+const authProvider = new keycloak.Provider("keycloak", {
+    clientId:  "admin-cli",
+    username: "admin",
+    password: keycloakAdminPassword,
+    realm: "master",
+    url: "https://" + accountsHost + "/",
+    rootCaCertificate: caCert.certPem
+});
+
+const realm = new keycloak.Realm("auth-realm", {
+    realm: "cyberapocalypse",
+    displayName: "Cyberapocalypse authentication realm",
+    enabled: true
+}, {
+    provider: authProvider
+});
+
+
+const openidClient = new keycloak.openid.Client("auth-client", {
+    accessType: "PUBLIC",
+    clientId: "cyberapocalypse",
+    name: "cyberapocalypse",
+    descrption: "cyberapocalypse authentication portal",
+    enabled: true,
+    realmId: realm.id,
+    standardFlowEnabled: true,
+    implicitFlowEnabled: false,
+    rootUrl: "https://" + portalHost + "/",
+    adminUrl: "https://" + portalHost + "/",
+    webOrigins: ["https://" + portalHost + "/"],
+    validRedirectUris: ["https://" + portalHost + "/*"],
+}, {
+    provider: authProvider
+});
+
+const user = new keycloak.User("auth-user", {
+    email: initialEmail,
+    enabled: true,
+    initialPassword: {
+        temporary: true,
+        value: initialPassword,
+    },
+    realmId: realm.id,
+    username: initialUser,
+}, {
+    provider: authProvider
+});
+
+exports.adminPassword = keycloakAdminPassword;
+exports.user = initialUser;
+exports.password = initialPassword;
 
