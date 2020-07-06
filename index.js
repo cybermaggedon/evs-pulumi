@@ -4,12 +4,14 @@ const pulumi = require("@pulumi/pulumi");
 const tls = require("@pulumi/tls");
 const keycloak = require("@pulumi/keycloak");
 
+var socId  = "s01";
+
 var region = "us-east1";
 var zone = "us-east1-d";
 var nodeType = "n1-standard-1";
 var domain = "cyberapocalypse.co.uk";
-var accountsHost = "accounts.portal." + domain;
-var portalHost = "portal.portal." + domain;
+var accountsHost = "accounts." + socId + ".portal." + domain;
+var portalHost = socId + ".portal." + domain;
 var dnsZone = "portal";
 var k8sNamespace = "cyberapocalypse";
 
@@ -20,7 +22,7 @@ var initialEmail = "user@cyberapocalypse.co.uk";
 var initialPassword = "CHANGEMENOW";
 
 const ipAddress = new gcp.compute.Address("address", {
-    name: "evs",
+    name: socId + "-evs",
     region: region
 });
 
@@ -49,7 +51,7 @@ const engineVersion = gcp.container.getEngineVersions({
 }).then(v => v.latestMasterVersion);
 
 const cluster = new gcp.container.Cluster("cluster", {
-    name:  "evs",
+    name:  socId + "-evs",
     initialNodeCount: 6,
     minMasterVersion: engineVersion,
     nodeVersion: engineVersion,
@@ -184,7 +186,7 @@ const portalSecret = new k8s.core.v1.Secret("portal-keys",
 
 exports.caCert = caCert.certPem;
 
-const extResources = new k8s.yaml.ConfigFile("evs-resources", {
+const extResources = new k8s.yaml.ConfigFile("k8s-resources", {
     file: "all.yaml",
     transformations: [
         (obj) => {
