@@ -22,7 +22,7 @@ const envDnsZone = gcp.dns.getManagedZone({
 });
 
 const portalDns = new gcp.dns.RecordSet("portal-dns", {
-    name: portalHost,
+    name: portalHost + ".",
     type: "A",
     ttl: 300,
     managedZone: envDnsZone.then(envDnsZone => envDnsZone.name),
@@ -30,7 +30,7 @@ const portalDns = new gcp.dns.RecordSet("portal-dns", {
 });
               
 const accountsDns = new gcp.dns.RecordSet("account-dns", {
-    name: accountsHost,
+    name: accountsHost + ".",
     type: "A",
     ttl: 300,
     managedZone: envDnsZone.then(envDnsZone => envDnsZone.name),
@@ -142,6 +142,17 @@ var portalCertBundle =
     pulumi.all([portalCert.certPem, caCert.certPem]).
     apply(([cert, ca]) => `${cert}${ca}`);
 
+const namespace = new k8s.core.v1.Namespace("namespace",
+    {
+        metadata: {
+            name: k8sNamespace
+        }
+    },
+    {
+        provider: clusterProvider
+    }
+);
+
 const portalSecret = new k8s.core.v1.Secret("portal-keys",
     {
         metadata: {
@@ -160,7 +171,7 @@ const portalSecret = new k8s.core.v1.Secret("portal-keys",
 
 exports.caCert = caCert.certPem;
 exports.portalAddress = ipAddress.address;
-    
+
 const extResources = new k8s.yaml.ConfigFile("evs-resources", {
     file: "all.yaml",
     transformations: [(obj) => {
@@ -173,3 +184,4 @@ const extResources = new k8s.yaml.ConfigFile("evs-resources", {
 {
     provider: clusterProvider
 });
+
