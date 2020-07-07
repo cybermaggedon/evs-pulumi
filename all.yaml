@@ -1,9 +1,5 @@
 apiVersion: v1
 items:
-# - apiVersion: v1
-#   kind: Namespace
-#   metadata:
-#     name: cyberapocalypse
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -1495,7 +1491,7 @@ items:
         containers:
         - env:
           - name: GF_SERVER_ROOT_URL
-            value: https://portal.portal.cyberapocalypse.co.uk/grafana
+            value: https://s01.portal.cyberapocalypse.co.uk/grafana
           - name: GF_AUTH_ANONYMOUS_ENABLED
             value: 'true'
           - name: GF_ORG_NAME
@@ -1828,7 +1824,7 @@ items:
       spec:
         containers:
         - args:
-          - --web.external-url=https://portal.portal.cyberapocalypse.co.uk/prometheus/
+          - --web.external-url=https://s01.portal.cyberapocalypse.co.uk/prometheus/
           - --web.route-prefix=/
           - --config.file=/etc/prometheus/prometheus.yml
           - --storage.tsdb.path=/prometheus
@@ -2464,9 +2460,9 @@ items:
           - name: OAUTH_CLIENT_SECRET
             value: x
           - name: OAUTH_CALLBACK_URL
-            value: https://portal.portal.cyberapocalypse.co.uk/auth/auth
+            value: https://s01.portal.cyberapocalypse.co.uk/auth/auth
           - name: OAUTH_AUTH_URL
-            value: https://accounts.portal.cyberapocalypse.co.uk/auth/realms/cyberapocalypse/protocol/openid-connect/auth
+            value: https://accounts.s01.portal.cyberapocalypse.co.uk/auth/realms/cyberapocalypse/protocol/openid-connect/auth
           - name: OAUTH_TOKEN_URL
             value: http://keycloak:8080/auth/realms/cyberapocalypse/protocol/openid-connect/token
           - name: OAUTH_USER_INFO_URL
@@ -2582,12 +2578,12 @@ items:
     type: LoadBalancer
 - apiVersion: v1
   data:
-    default.conf: "\nserver {\n    listen 443 ssl;\n    server_name portal.portal.cyberapocalypse.co.uk;\n\
+    default.conf: "\nserver {\n    listen 443 ssl;\n    server_name s01.portal.cyberapocalypse.co.uk;\n\
       \n    ssl_certificate /etc/tls/portal/server.crt;\n    ssl_certificate_key /etc/tls/portal/server.key;\n\
       \n    # https://github.com/vouch/vouch-proxy\n    # send all requests to the\
       \ `/validate` endpoint for authorization\n    location = /validate {\n\n   \
       \     # /validate proxies all the requests to lasso\n        # lasso can also\
-      \ run behind the same nginx-revproxy\n        proxy_pass https://portal.portal.cyberapocalypse.co.uk/auth/validate;\n\
+      \ run behind the same nginx-revproxy\n        proxy_pass https://s01.portal.cyberapocalypse.co.uk/auth/validate;\n\
       \n        # lasso only acts on the request headers\n        proxy_pass_request_body\
       \ off;\n        proxy_set_header Content-Length \"\";\n        # valid user!\n\
       \        # add X-Vouch-User to the request\n        auth_request_set $auth_resp_x_vouch_user\
@@ -2597,7 +2593,7 @@ items:
       \   auth_request_set $auth_resp_failcount $upstream_http_x_vouch_failcount;\n\
       \    }\n\n    # if validate returns `401 not authorized` then forward the request\
       \ to the error401block\n    error_page 401 = @error401;\n\n    location @error401\
-      \ {\n        # redirect to vouch proxy for login\n        return 302 https://portal.portal.cyberapocalypse.co.uk/auth/login?url=$scheme://$http_host$request_uri&lasso-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;\n\
+      \ {\n        # redirect to vouch proxy for login\n        return 302 https://s01.portal.cyberapocalypse.co.uk/auth/login?url=$scheme://$http_host$request_uri&lasso-failcount=$auth_resp_failcount&X-Vouch-Token=$auth_resp_jwt&error=$auth_resp_err;\n\
       \    }\n\n    location /auth/ {\n        proxy_pass http://vouch:9090/;\n  \
       \      # be sure to pass the original host header\n        proxy_set_header\
       \ Host $http_host;\n    }\n\n    location /grafana/ {\n        auth_request\
@@ -2625,7 +2621,7 @@ items:
       \    }\n\n    #error_page  404              /404.html;\n\n    # redirect server\
       \ error pages to the static page /50x.html\n    #\n    error_page   500 502\
       \ 503 504  /50x.html;\n    location = /50x.html {\n        root   /usr/share/nginx/html;\n\
-      \    }\n\n}\n\nserver {\n\n    listen 443 ssl;\n    server_name accounts.portal.cyberapocalypse.co.uk;\n\
+      \    }\n\n}\n\nserver {\n\n    listen 443 ssl;\n    server_name accounts.s01.portal.cyberapocalypse.co.uk;\n\
       \n    ssl_certificate /etc/tls/portal/server.crt;\n    ssl_certificate_key /etc/tls/portal/server.key;\n\
       \n    location / {\n        proxy_pass http://keycloak:8080/;\n        proxy_set_header\
       \ Host $http_host;\n        proxy_set_header X-Real-IP $remote_addr;\n     \
@@ -2690,7 +2686,7 @@ items:
           - name: JAVA_OPTS
             value: -Xms128m -Xmx256m
           - name: KEYCLOAK_FRONTEND_URL
-            value: https://accounts.portal.cyberapocalypse.co.uk/auth
+            value: https://accounts.s01.portal.cyberapocalypse.co.uk/auth
           - name: PROXY_ADDRESS_FORWARDING
             value: 'true'
           image: quay.io/keycloak/keycloak:10.0.2

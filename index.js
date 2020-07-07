@@ -4,60 +4,47 @@ const pulumi = require("@pulumi/pulumi");
 const tls = require("@pulumi/tls");
 const keycloak = require("@pulumi/keycloak");
 
-var socId  = "s01";
+const config = new pulumi.Config();
 
-var region = "us-east1";
-var zone = "us-east1-d";
-var nodeType = "n1-standard-1";
-var domain = "cyberapocalypse.co.uk";
-var accountsHost = "accounts." + socId + ".portal." + domain;
-var portalHost = socId + ".portal." + domain;
-var dnsZone = "portal";
-var k8sNamespace = "cyberapocalypse";
-
-var keycloakAdminPassword = "CHANGEME";
-
-var initialUser = "user";
-var initialEmail = "user@cyberapocalypse.co.uk";
-var initialPassword = "CHANGEMENOW";
+var socNamespace = config.require("k8s-namespace");
 
 const ipAddress = new gcp.compute.Address("address", {
-    name: socId + "-evs",
-    region: region
+    name: config.require("soc-id") + "-evs",
+    region: config.require("region")
 });
 
-const envDnsZone = gcp.dns.getManagedZone({
-    name: dnsZone,
+const dnsZone = gcp.dns.getManagedZone({
+    name: config.require("dns-zone")
 });
 
 const portalDns = new gcp.dns.RecordSet("portal-dns", {
-    name: portalHost + ".",
+    name: config.require("portal-host") + ".",
     type: "A",
     ttl: 300,
-    managedZone: envDnsZone.then(envDnsZone => envDnsZone.name),
+    managedZone: dnsZone.then(zone => zone.name),
     rrdatas: [ipAddress.address],
 });
               
 const accountsDns = new gcp.dns.RecordSet("account-dns", {
-    name: accountsHost + ".",
+    name: config.require("accounts-host") + ".",
     type: "A",
     ttl: 300,
-    managedZone: envDnsZone.then(envDnsZone => envDnsZone.name),
+    managedZone: dnsZone.then(zone => zone.name),
     rrdatas: [ipAddress.address],
 });
 
 const engineVersion = gcp.container.getEngineVersions({
-    location: zone
+    location: config.require("zone"),
 }).then(v => v.latestMasterVersion);
 
 const cluster = new gcp.container.Cluster("cluster", {
-    name:  socId + "-evs",
+    name:  config.require("soc-id") + "-evs",
     initialNodeCount: 6,
     minMasterVersion: engineVersion,
     nodeVersion: engineVersion,
-    location: zone,
+    location: config.require("zone"),
     nodeConfig: {
-        machineType: nodeType,
+        machineType: config.require("node-type"),
         oauthScopes: [
             "https://www.googleapis.com/auth/compute",
             "https://www.googleapis.com/auth/devstorage.read_only",
@@ -140,7 +127,10 @@ const portalReq = new tls.CertRequest("portal-req", {
         organizationalUnit: "Security",
         organization: "Cyberapocalypse"
     }],
-    dnsNames: [ portalHost, accountsHost ],
+    dnsNames: [
+        config.require("portal-host"),
+        config.require("accounts-host")
+    ],
     ipAddresses: [ipAddress.address],
 });
 
@@ -160,7 +150,7 @@ var portalCertBundle =
 const namespace = new k8s.core.v1.Namespace("namespace",
     {
         metadata: {
-            name: k8sNamespace
+            name: socNamespace
         }
     },
     {
@@ -172,7 +162,7 @@ const portalSecret = new k8s.core.v1.Secret("portal-keys",
     {
         metadata: {
             name: "portal-keys",
-            namespace: k8sNamespace,
+            namespace: socNamespace
         },
         stringData: {
             "server.crt": portalCertBundle,
@@ -192,27 +182,50 @@ const extResources = new k8s.yaml.ConfigFile("k8s-resources", {
         (obj) => {
             if (obj.kind == "Service" && obj.metadata.name == "portal") {
                 obj.spec.loadBalancerIP = ipAddress.address
-             }
+            }
+        },
+        (obj) => {
+            if ("metadata" in obj) {
+                if ("namespace" in obj.metadata) {
+                    obj.metadata.namespace = socNamespace;
+                }
+            }
         },
         (obj) => {
             if (obj.kind == "Deployment" && obj.metadata.name == "keycloak") {
-                obj.spec.template.spec.containers[0].env[1].value =
-                    keycloakAdminPassword;
+                var envs = obj.spec.template.spec.containers[0].env;
+                for (v in envs) {
+                    if (envs[v].name == "KEYCLOAK_PASSWORD") {
+                        envs[v].value = config.require("keycloak-admin-password");
+                    }
+                }
             }
-        },
+        }
     ],
 },
 {
     provider: clusterProvider
 });
 
+
+const kDeploy = extResources.getResource("apps/v1/Deployment", "s01", "keycloak");
+const kService = extResources.getResource("v1/Service", "s01", "keycloak");
+const nDeploy = extResources.getResource("apps/v1/Deployment", "s01", "nginx");
+const pService = extResources.getResource("v1/Service", "s01", "portal");
+
+// Can't interact with keycloak until  these resources are running.
+kcResources = [ kDeploy, kService, nDeploy, pService ];
+
 const authProvider = new keycloak.Provider("keycloak", {
     clientId:  "admin-cli",
     username: "admin",
-    password: keycloakAdminPassword,
+    password: config.require("keycloak-admin-password"),
     realm: "master",
-    url: "https://" + accountsHost + "/",
-    rootCaCertificate: caCert.certPem
+    url: "https://" + config.require("accounts-host") + "/",
+    rootCaCertificate: caCert.certPem,
+    initialLogin: false
+}, {
+    dependsOn: kcResources
 });
 
 const realm = new keycloak.Realm("auth-realm", {
@@ -220,9 +233,9 @@ const realm = new keycloak.Realm("auth-realm", {
     displayName: "Cyberapocalypse authentication realm",
     enabled: true
 }, {
-    provider: authProvider
+    provider: authProvider,
+    dependsOn: kcResources
 });
-
 
 const openidClient = new keycloak.openid.Client("auth-client", {
     accessType: "PUBLIC",
@@ -233,28 +246,35 @@ const openidClient = new keycloak.openid.Client("auth-client", {
     realmId: realm.id,
     standardFlowEnabled: true,
     implicitFlowEnabled: false,
-    rootUrl: "https://" + portalHost + "/",
-    adminUrl: "https://" + portalHost + "/",
-    webOrigins: ["https://" + portalHost + "/"],
-    validRedirectUris: ["https://" + portalHost + "/*"],
+    rootUrl: "https://" + config.require("portal-host") + "/",
+    adminUrl: "https://" + config.require("portal-host") + "/",
+    webOrigins: ["https://" + config.require("portal-host") + "/"],
+    validRedirectUris: ["https://" + config.require("portal-host") + "/*"],
 }, {
-    provider: authProvider
+    provider: authProvider,
+    dependsOn: [
+        extResources.getResource("Service", "keycloak"),
+        extResources.getResource("Deployment", "keycloak")
+    ]
 });
 
 const user = new keycloak.User("auth-user", {
-    email: initialEmail,
+    email: config.require("initial-email"),
     enabled: true,
     initialPassword: {
         temporary: true,
-        value: initialPassword,
+        value: config.require("initial-password"),
     },
     realmId: realm.id,
-    username: initialUser,
+    username: config.require("initial-user"),
 }, {
-    provider: authProvider
+    provider: authProvider,
+    dependsOn: [
+        extResources.getResource("Service", "keycloak"),
+        extResources.getResource("Deployment", "keycloak")
+    ]
 });
 
-exports.adminPassword = keycloakAdminPassword;
-exports.user = initialUser;
-exports.password = initialPassword;
+
+
 
