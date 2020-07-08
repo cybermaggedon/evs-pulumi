@@ -1,0 +1,93 @@
+{
+    "entities": {
+        "actor": {
+            "vertex": "string",
+            "properties": {
+                "group": "string",
+                "count": "int",
+                "time": "timestamp.set"
+            }
+        },
+        "resource": {
+            "vertex": "string",
+            "properties": {
+                "type": "string",
+                "count": "int",
+                "time": "timestamp.set"
+            }
+        },
+        "risk": {
+            "vertex": "string",
+            "properties": {
+                "count": "int",
+                "time": "timestamp.set"
+            }
+        }
+    },
+    "edges": {
+        "actorresource": {
+            "source": "string",
+            "destination": "string",
+            "directed": "true",
+            "properties": {
+                "count": "int",
+                "time": "timestamp.set"
+            }
+        },
+        "actorrisk": {
+            "source": "string",
+            "destination": "string",
+            "directed": "true",
+            "properties": {
+                "count": "int",
+                "time": "timestamp.set"
+            }
+        },
+        "resourcerisk": {
+            "source": "string",
+            "destination": "string",
+            "directed": "true",
+            "properties": {
+                "count": "int",
+                "time": "timestamp.set"
+            }
+        }
+    },
+    "types": {
+        "int": {
+            "class": "java.lang.Integer",
+            "aggregateFunction": {
+                "class": "uk.gov.gchq.koryphe.impl.binaryoperator.Sum"
+            }
+        },
+        "time": {
+            "class": "java.lang.Integer",
+            "aggregateFunction": {
+                "class": "uk.gov.gchq.koryphe.impl.binaryoperator.First"
+            }
+        },
+        "string": {
+            "class": "java.lang.String",
+            "aggregateFunction": {
+                "class": "uk.gov.gchq.koryphe.impl.binaryoperator.First"
+            }
+        },
+        "true": {
+            "class": "java.lang.Boolean",
+            "validateFunctions": [
+                {
+                    "class": "uk.gov.gchq.koryphe.impl.predicate.IsTrue"
+                }
+            ]
+        },
+        "timestamp.set": {
+            "class": "uk.gov.gchq.gaffer.time.RBMBackedTimestampSet",
+            "aggregateFunction": {
+                "class": "uk.gov.gchq.gaffer.time.binaryoperator.RBMBackedTimestampSetAggregator"
+            },
+            "serialiser": {
+                "class": "uk.gov.gchq.gaffer.time.serialisation.RBMBackedTimestampSetSerialiser"
+            }
+        }
+    }
+}

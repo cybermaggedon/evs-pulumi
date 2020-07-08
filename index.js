@@ -188,6 +188,9 @@ zookeeper.resources(config, clusterProvider);
 const accumulo = require("./accumulo.js");
 accumulo.resources(config, clusterProvider);
 
+const gaffer = require("./gaffer.js");
+gaffer.resources(config, clusterProvider);
+
 /*
 const extResources = new k8s.yaml.ConfigFile("k8s-resources", {
     file: "all.yaml",

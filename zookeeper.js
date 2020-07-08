@@ -18,10 +18,10 @@ const resources = function(config, provider) {
 
     const container = function(id) {
         return {
-            name: "zookeeper",
+            name: name,
             image: images[0],
             env: [
-                { name: "ZOOKEEPER_MYID", value: id.toString() },
+                { name: "ZOOKEEPER_MYID", value: (id + 1).toString() },
                 { name: "ZOOKEEPERS", value: zookeepers.toString() }
             ],
             ports: containerPorts,
@@ -36,10 +36,10 @@ const resources = function(config, provider) {
     };
 
     const deployment = function(id) {
-        const instance = "zookeeper" + id.toString();
+        const instance = "zk" + (id + 1).toString();
         return new k8s.apps.v1.Deployment(instance, {
             metadata: {
-                name: name,
+                name: instance,
                 namespace: config.require("k8s-namespace"),
                 labels: {
                     instance: instance, app: "zookeeper", component: "gaffer"
@@ -61,7 +61,7 @@ const resources = function(config, provider) {
                         }
                     },
                     spec: {
-                        containers: [container],
+                        containers: [ container(id) ],
                         volumes: [
                             {
                                 name: "data",
@@ -71,7 +71,7 @@ const resources = function(config, provider) {
                             }
                         ],
                         hostname: instance,
-                        subdomain: "zk"
+                        subdomain: "zookeeper"
                     }
                 }
             }
@@ -101,7 +101,7 @@ const resources = function(config, provider) {
     });
 
     const pvc = function(id) {
-        const instance = "zookeeper" + id.toString();
+        const instance = "zk" + (id + 1).toString();
         return new k8s.core.v1.PersistentVolumeClaim(instance, {
             metadata: {
                 name: instance,
