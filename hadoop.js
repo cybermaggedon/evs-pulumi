@@ -168,24 +168,37 @@ const resources = function(config, provider) {
         provider: provider
     });
 
-    const pvc = new k8s.core.v1.PersistentVolumeClaim("hadoop", {
-        metadata: {
-            name: "hadoop-namenode",
-            namespace: config.require("k8s-namespace"),
-            labels: { instance: "hadoop-namenode", app: "hadoop",
-                      component: "gaffer" }
-        },
-        spec: {
-            accessModes: [ "ReadWriteOnce" ],
-            resources: {
-                requests: { storage: "5G" }
+    const pvc = function(name, size) {
+        return new k8s.core.v1.PersistentVolumeClaim(name, {
+            metadata: {
+                name: name,
+                namespace: config.require("k8s-namespace"),
+                labels: { instance: name, app: "hadoop",
+                          component: "gaffer" }
             },
-            storageClassName: "hadoop",
-            volumeMode: "Filesystem"
+            spec: {
+                accessModes: [ "ReadWriteOnce" ],
+                resources: {
+                    requests: { storage: size }
+                },
+                storageClassName: "hadoop",
+                volumeMode: "Filesystem"
+            }
+        }, {
+            provider: provider
+        });
+    }
+    
+    const pvcs = function() {
+        var rtn = [];
+        rtn.push(pvc("hadoop-namenode", "5G"));
+        for (var id = 0; id < hadoops; id++) {
+            const count = zeroPad(id, 4);
+            const instance = name + "-data-" + count;
+            rtn.push(pvc(instance, "5G"));
         }
-    }, {
-        provider: provider
-    });
+        return rtn;
+    }();
 
     const svc = new k8s.core.v1.Service("hadoop", {
         metadata: {
@@ -212,7 +225,8 @@ const resources = function(config, provider) {
 
     return [ namenodeDepl ].
         concat(datanodeDepl).
-        concat([storageClass, pvc, svc]);
+        concat(pvcs).
+        concat([storageClass, svc]);
 
     
 };
