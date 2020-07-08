@@ -1,3 +1,4 @@
+
 const gcp = require("@pulumi/gcp");
 const k8s =  require("@pulumi/kubernetes");
 const pulumi = require("@pulumi/pulumi");
@@ -176,6 +177,10 @@ const portalSecret = new k8s.core.v1.Secret("portal-keys",
 
 exports.caCert = caCert.certPem;
 
+const hadoop = require("./hadoop.js");
+hadoop.resources(config, clusterProvider);
+
+/*
 const extResources = new k8s.yaml.ConfigFile("k8s-resources", {
     file: "all.yaml",
     transformations: [
@@ -278,3 +283,4 @@ const user = new keycloak.User("auth-user", {
 
 
 
+*/
