@@ -40,7 +40,7 @@ const engineVersion = gcp.container.getEngineVersions({
 
 const cluster = new gcp.container.Cluster("cluster", {
     name:  config.require("soc-id") + "-evs",
-    initialNodeCount: 6,
+    initialNodeCount: 2,
     minMasterVersion: engineVersion,
     nodeVersion: engineVersion,
     location: config.require("zone"),
@@ -148,16 +148,18 @@ var portalCertBundle =
     pulumi.all([portalCert.certPem, caCert.certPem]).
     apply(([cert, ca]) => `${cert}${ca}`);
 
-const namespace = new k8s.core.v1.Namespace("namespace",
-    {
-        metadata: {
-            name: socNamespace
+if (socNamespace != "default") {
+    const namespace = new k8s.core.v1.Namespace("namespace",
+        {
+            metadata: {
+                name: socNamespace
+            }
+        },
+        {
+            provider: clusterProvider
         }
-    },
-    {
-        provider: clusterProvider
-    }
-);
+    );
+}
 
 const portalSecret = new k8s.core.v1.Secret("portal-keys",
     {
@@ -179,6 +181,12 @@ exports.caCert = caCert.certPem;
 
 const hadoop = require("./hadoop.js");
 hadoop.resources(config, clusterProvider);
+
+const zookeeper = require("./zookeeper.js");
+zookeeper.resources(config, clusterProvider);
+
+const accumulo = require("./accumulo.js");
+accumulo.resources(config, clusterProvider);
 
 /*
 const extResources = new k8s.yaml.ConfigFile("k8s-resources", {
