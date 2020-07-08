@@ -197,6 +197,9 @@ elasticsearch.resources(config, clusterProvider);
 const kibana = require("./kibana.js");
 kibana.resources(config, clusterProvider);
 
+const cassandra = require("./cassandra.js");
+cassandra.resources(config, clusterProvider);
+
 /*
 const extResources = new k8s.yaml.ConfigFile("k8s-resources", {
     file: "all.yaml",
