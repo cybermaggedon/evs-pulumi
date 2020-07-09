@@ -21,5 +21,6 @@
   pulumi config set initial-user user
   pulumi config set initial-email user@cyberapocalypse.co.uk
   pulumi config set --secret initial-password WHATEVER
+  pulumi config set --secret jwt-secret $(dd if=/dev/urandom bs=50 count=1 | base64)
 
 - pulumi up
