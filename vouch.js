@@ -45,7 +45,7 @@ exports.resources = function(config, provider) {
                                     },
                                     {
                                         "name": "VOUCH_COOKIE_DOMAIN",
-                                        "value": "cyberapocalypse.co.uk"
+                                        "value": config.require("domain")
                                     },
                                     {
                                         "name": "VOUCH_ALLOWALLUSERS",
@@ -61,15 +61,15 @@ exports.resources = function(config, provider) {
                                     },
                                     {
                                         "name": "OAUTH_CLIENT_SECRET",
-                                        "value": "x"
+                                        "value": "NOT_USER"
                                     },
                                     {
                                         "name": "OAUTH_CALLBACK_URL",
-                                        "value": "https://portal.portal.cyberapocalypse.co.uk/auth/auth"
+                                        "value": "https://" + config.require("portal-host") + "/auth/auth"
                                     },
                                     {
                                         "name": "OAUTH_AUTH_URL",
-                                        "value": "https://accounts.portal.cyberapocalypse.co.uk/auth/realms/cyberapocalypse/protocol/openid-connect/auth"
+                                        "value": "https://" + config.require("accounts-host") + "/auth/realms/cyberapocalypse/protocol/openid-connect/auth"
                                     },
                                     {
                                         "name": "OAUTH_TOKEN_URL",

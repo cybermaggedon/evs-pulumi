@@ -213,7 +213,7 @@ const kcloak = require("./keycloak.js");
 kcloak.resources(config, clusterProvider);
 
 const nginx = require("./nginx.js");
-nginx.resources(config, clusterProvider);
+nginx.resources(config, clusterProvider, ipAddress);
 
 const prometheus = require("./prometheus.js");
 prometheus.resources(config, clusterProvider);

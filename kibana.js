@@ -72,7 +72,7 @@ const resources = function(config, provider) {
               },
               spec: {
                   ports: [
-                      { name: "kibana", port: 9200, targetPort: 9200,
+                      { name: "kibana", port: 5601, targetPort: 5601,
                         protocol: "TCP" }
                   ],
                   selector: {

@@ -6,16 +6,16 @@ const analytics = [
   {n: "evs-geoip", v: "0.4.2", e: []},
   {n: "evs-detector", v: "0.4.2", e: []},
   {n: "evs-elasticsearch", v: "0.4.4", e: [
-      ["ELASTICSEARCH_URL", "http://elasticsearch:9200"]
+      {name: "ELASTICSEARCH_URL", value:"http://elasticsearch:9200"}
   ]},
   {n: "evs-threatgraph", v: "0.4.2", e: [
-       ["GAFFER_URL", "http://threat-graph:8080/rest/v2"]
+      {name:"GAFFER_URL", value:"http://threat-graph:8080/rest/v2"}
   ]},
   {n: "evs-riskgraph", v: "0.4.2", e: [
-       ["GAFFER_URL", "http://risk-graph:8080/rest/v2"]
+      {name:"GAFFER_URL", value:"http://risk-graph:8080/rest/v2"}
   ]},
   {n: "evs-cassandra", v: "0.4.2", e: [
-      ["CASSANDRA_CLUSTER", "cassandra"]
+      {name:"CASSANDRA_CLUSTER", value:"cassandra"}
   ]}
 ];
 
@@ -26,7 +26,7 @@ exports.resources = function(config, provider) {
 
         const a = analytics[i];
 
-        var image = "docker.io/cybermaggedon/" + a.n + "+" + a.vl
+        var image = "docker.io/cybermaggedon/" + a.n + ":" + a.v;
 
         var env = a.e;
         env.push( { name: "PULSAR_BROKER", value: "pulsar://exchange:6650" } );

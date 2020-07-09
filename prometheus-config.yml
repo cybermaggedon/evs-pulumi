@@ -1,0 +1,77 @@
+global:
+
+  # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  scrape_interval:     15s 
+
+  # Evaluate rules every 15 seconds. The default is every 1 minute.
+  evaluation_interval: 15s 
+
+  # scrape_timeout is set to the global default (10s).
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+
+# The job name is added as a label `job=<job_name>` to any timeseries
+# scraped from this config.
+- job_name: 'kubernetes-service-endpoints'
+
+  kubernetes_sd_configs:
+  - role: endpoints
+    namespaces:
+      names:
+      - %K8S-NAMESPACE%
+
+  relabel_configs:
+
+  # Relabel to scrape only endpoints that have
+  # "prometheus.io/scrape = true" annotation.
+#   - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+#     action: keep
+#     regex: true
+
+  # Relabel to customize metric path based on endpoints
+  # "prometheis.io/metric_path = <metric path>" annotation.
+  - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_metric_path]
+    action: replace
+    target_label: __metrics_path__
+    regex: (.+)
+
+  # Relabel to scrape only single, desired port for the service based
+  # on endpoints "prometheus.io/scrape_port = <port>" annotation.
+  - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_scrape_port]
+    action: replace
+    regex: ([^:]+)(?::\d+)?;(\d+)
+    replacement: $1:$2
+    target_label: __address__
+
+  # Example relabel to configure scrape scheme for all service scrape targets
+  # based on endpoints "prometheus.io/scrape_scheme = <scheme>" annotation.
+  - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape_scheme]
+    action: replace
+    target_label: __scheme__
+    regex: (https?)
+
+  - action: labelmap
+    regex: __meta_kubernetes_service_label_(.+)
+
+  - source_labels: [__meta_kubernetes_namespace]
+    action: replace
+    target_label: kubernetes_namespace
+
+  - source_labels: [__meta_kubernetes_service_name]
+    action: replace
+    target_label: kubernetes_name
+

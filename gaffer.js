@@ -101,9 +101,9 @@ const gaffer = function(config, provider, id, schema, table) {
         });
     }();
 
-    const svc = new k8s.core.v1.Service("gaffer-" + id, {
+    const svc = new k8s.core.v1.Service(id + "-graph", {
         metadata: {
-            name: "gaffer-" + id,
+            name: id + "-graph",
             namespace: config.require("k8s-namespace"),
             labels: { app: "gaffer", component: "gaffer" }
          },

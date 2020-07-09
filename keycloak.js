@@ -32,10 +32,10 @@ exports.resources = function(config, provider) {
                         }
                     },
                     "spec": {
-                        "name": "keycloak",
-                        "image": "quay.io/keycloak/keycloak:10.0.2",
                         "containers": [
                             {
+                                "name": "keycloak",
+                                "image": "quay.io/keycloak/keycloak:10.0.2",
                                 "env": [
                                     {
                                         "name": "KEYCLOAK_USER",
