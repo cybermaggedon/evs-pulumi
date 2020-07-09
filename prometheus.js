@@ -10,38 +10,38 @@ exports.resources = function(config, provider) {
 
     return [
         new k8s.apps.v1.Deployment("prometheus", {
-            "name": "prometheus",
-            "metadata": {
-                "labels": {
-                    "instance": "prometheus",
-                    "app": "prometheus",
-                    "component": "prometheus"
+            name: "prometheus",
+            metadata: {
+                labels: {
+                    instance: "prometheus",
+                    app: "prometheus",
+                    component: "prometheus"
                 },
-                "namespace": config.require("k8s-namespace")
+                namespace: config.require("k8s-namespace")
             },
-            "spec": {
-                "replicas": 1,
-                "selector": {
-                    "matchLabels": {
-                        "instance": "prometheus",
-                        "app": "prometheus",
-                        "component": "prometheus"
+            spec: {
+                replicas: 1,
+                selector: {
+                    matchLabels: {
+                        instance: "prometheus",
+                        app: "prometheus",
+                        component: "prometheus"
                     }
                 },
-                "template": {
-                    "metadata": {
-                        "labels": {
-                            "instance": "prometheus",
-                            "app": "prometheus",
-                            "component": "prometheus"
+                template: {
+                    metadata: {
+                        labels: {
+                            instance: "prometheus",
+                            app: "prometheus",
+                            component: "prometheus"
                         }
                     },
-                    "spec": {
-                        "containers": [
+                    spec: {
+                        containers: [
                             {
-                                "name": "prometheus",
-                                "image": "prom/prometheus:v2.19.1",
-                                "args": [
+                                name: "prometheus",
+                                image: "prom/prometheus:v2.19.1",
+                                args: [
                                     "--web.external-url=https://" + config.require("portal-host") + "/prometheus/",
                                     "--web.route-prefix=/",
                                     "--config.file=/etc/prometheus/prometheus.yml",
@@ -49,39 +49,39 @@ exports.resources = function(config, provider) {
                                     "--web.console.libraries=/usr/share/prometheus/console_libraries",
                                     "--web.console.templates=/usr/share/prometheus/consoles"
                                 ],
-                                "env": [ ],
-                                "ports": [
+                                env: [ ],
+                                ports: [
                                     {
-                                        "containerPort": 9090,
-                                        "name": "prometheus"
+                                        containerPort: 9090,
+                                        name: "prometheus"
                                     }
                                 ],
-                                "resources": {
-                                    "limits": {
-                                        "cpu": "1.0",
-                                        "memory": "256M"
+                                resources: {
+                                    limits: {
+                                        cpu: "1.0",
+                                        memory: "256M"
                                     },
-                                    "requests": {
-                                        "cpu": "0.05",
-                                        "memory": "256M"
+                                    requests: {
+                                        cpu: "0.05",
+                                        memory: "256M"
                                     }
                                 },
-                                "volumeMounts": [
+                                volumeMounts: [
                                     {
-                                        "mountPath": "/etc/prometheus",
-                                        "name": "config",
-                                        "readOnly": true
+                                        mountPath: "/etc/prometheus",
+                                        name: "config",
+                                        readOnly: true
                                     }
                                 ]
                             }
                         ],
-                        "serviceAccountName": "prometheus",
-                        "volumes": [
+                        serviceAccountName: "prometheus",
+                        volumes: [
                             {
-                                "configMap": {
-                                    "name": "prometheus-config"
+                                configMap: {
+                                    name: "prometheus-config"
                                 },
-                                "name": "config"
+                                name: "config"
                             }
                         ]
                     }
@@ -91,113 +91,113 @@ exports.resources = function(config, provider) {
             provider: provider
         }),
         new k8s.core.v1.Service("prometheus", {
-            "metadata": {
-                "labels": {
-                    "app": "prometheus",
-                    "component": "prometheus"
+            metadata: {
+                labels: {
+                    app: "prometheus",
+                    component: "prometheus"
                 },
-                "name": "prometheus",
-                "namespace": config.require("k8s-namespace")
+                name: "prometheus",
+                namespace: config.require("k8s-namespace")
             },
-            "spec": {
-                "ports": [
+            spec: {
+                ports: [
                     {
-                        "name": "prometheus",
-                        "port": 9090,
-                        "protocol": "TCP",
-                        "targetPort": 9090
+                        name: "prometheus",
+                        port: 9090,
+                        protocol: "TCP",
+                        targetPort: 9090
                     }
                 ],
-                "selector": {
-                    "app": "prometheus",
-                    "component": "prometheus"
+                selector: {
+                    app: "prometheus",
+                    component: "prometheus"
                 }
             }
         }, {
             provider: provider
         }),
         new k8s.core.v1.ConfigMap("prometheus-config", {
-            "metadata": {
-                "name": "prometheus-config",
-                "labels": {
-                    "app": "prometheus",
-                    "component": "prometheus"
+            metadata: {
+                name: "prometheus-config",
+                labels: {
+                    app: "prometheus",
+                    component: "prometheus"
                 },
-                "namespace": config.require("k8s-namespace")
+                namespace: config.require("k8s-namespace")
             },
-            "data": {
+            data: {
                 "prometheus.yml": prom_conf
             }
         }, {
             provider: provider
         }),
         new k8s.rbac.v1.ClusterRole("prometheus", {
-            "metadata": {
-                "name": "prometheus",
-                "namespace": config.require("k8s-namespace")
+            metadata: {
+                name: "prometheus",
+                namespace: config.require("k8s-namespace")
             },
-            "rules": [
+            rules: [
                 {
-                    "apiGroups": [ "" ],
-                    "resources": [
+                    apiGroups: [ "" ],
+                    resources: [
                         "nodes",
                         "nodes/proxy",
                         "services",
                         "endpoints",
                         "pods"
                     ],
-                    "verbs": [
+                    verbs: [
                         "get",
                         "list",
                         "watch"
                     ]
                 },
                 {
-                    "apiGroups": [
+                    apiGroups: [
                         "extensions"
                     ],
-                    "resources": [
+                    resources: [
                         "ingresses"
                     ],
-                    "verbs": [
+                    verbs: [
                         "get",
                         "list",
                         "watch"
                     ]
                 },
                 {
-                    "nonResourceURLs": [
+                    nonResourceURLs: [
                         "/metrics"
                     ],
-                    "verbs": [ "get" ]
+                    verbs: [ "get" ]
             }
          ]
         }, {
             provider: provider
         }),
         new k8s.core.v1.ServiceAccount("prometheus", {
-            "metadata": {
-                "name": "prometheus",
-                "namespace": config.require("k8s-namespace")
+            metadata: {
+                name: "prometheus",
+                namespace: config.require("k8s-namespace")
             }
         }, {
             provider: provider
         }),
         new k8s.rbac.v1.ClusterRoleBinding("prometheus", {
-            "metadata": {
-                "name": "prometheus",
-                "namespace": config.require("k8s-namespace")
+            metadata: {
+                name: "prometheus",
+                namespace: config.require("k8s-namespace")
             },
-            "roleRef": {
-                "apiGroup": "rbac.authorization.k8s.io",
-                "kind": "ClusterRole",
-                "name": "prometheus"
+            roleRef: {
+                apiGroup: "rbac.authorization.k8s.io",
+                kind: "ClusterRole",
+                name: "prometheus"
             },
-            "subjects": [
+            subjects: [
                 {
-                    "kind": "ServiceAccount",
-                    "name": "prometheus",
-                    "namespace": config.require("k8s-namespace")
+                    kind: "ServiceAccount",
+                    name: "prometheus",
+                    namespace: config.require("k8s-namespace")
                 }
             ]
         }, {

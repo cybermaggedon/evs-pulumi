@@ -11,90 +11,90 @@ exports.resources = function(config, provider, ipAddress, required) {
                           
     return [
         new k8s.apps.v1.Deployment("nginx", {
-            "metadata": {
-                "name": "nginx",
-                "labels": {
-                    "instance": "nginx",
-                    "app": "nginx",
-                    "component": "nginx"
+            metadata: {
+                name: "nginx",
+                labels: {
+                    instance: "nginx",
+                    app: "nginx",
+                    component: "nginx"
                 },
-                "namespace": config.require("k8s-namespace")
+                namespace: config.require("k8s-namespace")
             },
-            "spec": {
-                "replicas": 1,
-                "selector": {
-                    "matchLabels": {
-                        "instance": "nginx",
-                        "app": "nginx",
-                        "component": "nginx"
+            spec: {
+                replicas: 1,
+                selector: {
+                    matchLabels: {
+                        instance: "nginx",
+                        app: "nginx",
+                        component: "nginx"
                     }
                 },
-                "template": {
-                    "metadata": {
-                        "labels": {
-                            "instance": "nginx",
-                            "app": "nginx",
-                            "component": "nginx"
+                template: {
+                    metadata: {
+                        labels: {
+                            instance: "nginx",
+                            app: "nginx",
+                            component: "nginx"
                         }
                     },
-                    "spec": {
-                        "containers": [
+                    spec: {
+                        containers: [
                             {
-                                "name": "nginx",
-                                "image": "nginx:1.19.0",
-                                "ports": [
+                                name: "nginx",
+                                image: "nginx:1.19.0",
+                                ports: [
                                     {
-                                        "containerPort": 443,
-                                        "name": "https"
+                                        containerPort: 443,
+                                        name: "https"
                                     }
                                 ],
-                                "resources": {
-                                    "limits": {
-                                        "cpu": "1.0",
-                                        "memory": "256M"
+                                resources: {
+                                    limits: {
+                                        cpu: "1.0",
+                                        memory: "256M"
                                     },
-                                    "requests": {
-                                        "cpu": "0.05",
-                                        "memory": "256M"
+                                    requests: {
+                                        cpu: "0.05",
+                                        memory: "256M"
                                     }
                                 },
-                                "volumeMounts": [
+                                volumeMounts: [
                                     {
-                                        "mountPath": "/etc/nginx/conf.d/",
-                                        "name": "config",
-                                        "readOnly": true
+                                        mountPath: "/etc/nginx/conf.d/",
+                                        name: "config",
+                                        readOnly: true
                                     },
                                     {
-                                        "mountPath": "/etc/tls/portal/",
-                                        "name": "portal-keys",
-                                        "readOnly": true
+                                        mountPath: "/etc/tls/portal/",
+                                        name: "portal-keys",
+                                        readOnly: true
                                     },
                                     {
-                                        "mountPath": "/usr/share/nginx/html/",
-                                        "name": "pages",
-                                        "readOnly": true
+                                        mountPath: "/usr/share/nginx/html/",
+                                        name: "pages",
+                                        readOnly: true
                                     }
                                 ]
                             }
                         ],
-                        "volumes": [
+                        volumes: [
                             {
-                                "configMap": {
-                                    "name": "nginx-config"
+                                configMap: {
+                                    name: "nginx-config"
                                 },
-                                "name": "config"
+                                name: "config"
                             },
                             {
-                                "name": "portal-keys",
-                                "secret": {
-                                    "secretName": "portal-keys"
+                                name: "portal-keys",
+                                secret: {
+                                    secretName: "portal-keys"
                                 }
                             },
                             {
-                                "configMap": {
-                                    "name": "web-pages"
+                                configMap: {
+                                    name: "web-pages"
                                 },
-                                "name": "pages"
+                                name: "pages"
                             }
                         ]
                     }
@@ -105,29 +105,29 @@ exports.resources = function(config, provider, ipAddress, required) {
             dependsOn: required
         }),
         new k8s.core.v1.Service("portal", {
-            "metadata": {
-                "name": "portal",
-                "labels": {
-                    "app": "nginx",
-                    "component": "nginx"
+            metadata: {
+                name: "portal",
+                labels: {
+                    app: "nginx",
+                    component: "nginx"
                 },
-                "namespace": config.require("k8s-namespace")
+                namespace: config.require("k8s-namespace")
             },
-            "spec": {
-                "loadBalancerIP": ipAddress.address,
-                "ports": [
+            spec: {
+                loadBalancerIP: ipAddress.address,
+                ports: [
                     {
-                        "name": "https",
-                        "port": 443,
-                        "protocol": "TCP",
-                        "targetPort": 443
+                        name: "https",
+                        port: 443,
+                        protocol: "TCP",
+                        targetPort: 443
                     }
                 ],
-                "selector": {
-                    "app": "nginx",
-                    "component": "nginx"
+                selector: {
+                    app: "nginx",
+                    component: "nginx"
                 },
-                "type": "LoadBalancer"
+                type: "LoadBalancer"
             }
         }, {
             provider: provider
@@ -156,7 +156,7 @@ exports.resources = function(config, provider, ipAddress, required) {
                 },
                 namespace: config.require("k8s-namespace")
             },
-            "data": {
+            data: {
                 "50x.html": fs.readFileSync("50x.html", "utf-8"),
                 "index.html": fs.readFileSync("index.html", "utf-8")
 

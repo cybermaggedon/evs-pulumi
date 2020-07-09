@@ -7,106 +7,106 @@ exports.resources = function(config, provider) {
 
     return [
         new k8s.apps.v1.Deployment("grafana", {
-            "metadata": {
-                "name": "grafana",
-                "labels": {
-                    "instance": "grafana", "app": "grafana",
-                    "component": "grafana"
+            metadata: {
+                name: "grafana",
+                labels: {
+                    instance: "grafana", "app": "grafana",
+                    component: "grafana"
                 },
-                "namespace": config.require("k8s-namespace")
+                namespace: config.require("k8s-namespace")
             },
-            "spec": {
-                "replicas": 1,
-                "selector": {
-                    "matchLabels": {
-                        "instance": "grafana", "app": "grafana",
-                        "component": "grafana"
+            spec: {
+                replicas: 1,
+                selector: {
+                    matchLabels: {
+                        instance: "grafana", "app": "grafana",
+                        component: "grafana"
                     }
                 },
-                "template": {
-                    "metadata": {
-                        "labels": {
-                            "instance": "grafana", "app": "grafana",
-                            "component": "grafana"
+                template: {
+                    metadata: {
+                        labels: {
+                            instance: "grafana", "app": "grafana",
+                            component: "grafana"
                         }
                     },
-                    "spec": {
-                        "containers": [
+                    spec: {
+                        containers: [
                             {
-                                "name": "grafana",
-                                "image": "grafana/grafana:7.0.3",
-                                "env": [
+                                name: "grafana",
+                                image: "grafana/grafana:7.0.3",
+                                env: [
                                     {
-                                        "name": "GF_SERVER_ROOT_URL",
-                                        "value": "https://" + config.require("portal-host") + "/grafana"
+                                        name: "GF_SERVER_ROOT_URL",
+                                        value: "https://" + config.require("portal-host") + "/grafana"
                                     },
                                     {
-                                        "name": "GF_AUTH_ANONYMOUS_ENABLED",
-                                        "value": "true"
+                                        name: "GF_AUTH_ANONYMOUS_ENABLED",
+                                        value: "true"
                                     },
                                     {
-                                        "name": "GF_ORG_NAME",
+                                        name: "GF_ORG_NAME",
                                         // FIXME
-                                        "value": "cyberapocalypse"
+                                        value: "cyberapocalypse"
                                     },
                                     {
-                                        "name": "GF_AUTH_ANONYMOUS_ORG_ROLE",
-                                        "value": "Admin"
+                                        name: "GF_AUTH_ANONYMOUS_ORG_ROLE",
+                                        value: "Admin"
                                     }
                                 ],
-                                "ports": [
+                                ports: [
                                     {
-                                        "containerPort": 3000,
-                                        "name": "grafana"
+                                        containerPort: 3000,
+                                        name: "grafana"
                                     }
                                 ],
-                                "resources": {
-                                    "limits": {
-                                        "cpu": "1.0",
-                                        "memory": "256M"
+                                resources: {
+                                    limits: {
+                                        cpu: "1.0",
+                                        memory: "256M"
                                     },
-                                    "requests": {
-                                        "cpu": "0.05",
-                                        "memory": "256M"
+                                    requests: {
+                                        cpu: "0.05",
+                                        memory: "256M"
                                     }
                                 },
-                                "volumeMounts": [
+                                volumeMounts: [
                                     {
-                                        "mountPath": "/etc/grafana/provisioning/datasources",
-                                        "name": "datasource-provision",
-                                        "readOnly": true
+                                        mountPath: "/etc/grafana/provisioning/datasources",
+                                        name: "datasource-provision",
+                                        readOnly: true
                                     },
                                     {
-                                        "mountPath": "/etc/grafana/provisioning/dashboards",
-                                        "name": "dashboard-provision",
-                                        "readOnly": true
+                                        mountPath: "/etc/grafana/provisioning/dashboards",
+                                        name: "dashboard-provision",
+                                        readOnly: true
                                     },
                                     {
-                                        "mountPath": "/var/lib/grafana/dashboards",
-                                        "name": "dashboards",
-                                        "readOnly": true
+                                        mountPath: "/var/lib/grafana/dashboards",
+                                        name: "dashboards",
+                                        readOnly: true
                                     }
                                 ]
                             }
                         ],
-                        "volumes": [
+                        volumes: [
                             {
-                                "configMap": {
-                                    "name": "grafana-dashboard-prov"
+                                configMap: {
+                                    name: "grafana-dashboard-prov"
                                 },
-                                "name": "dashboard-provision"
+                                name: "dashboard-provision"
                             },
                             {
-                                "configMap": {
-                                    "name": "grafana-dashboards"
+                                configMap: {
+                                    name: "grafana-dashboards"
                                 },
-                                "name": "dashboards"
+                                name: "dashboards"
                             },
                             {
-                                "configMap": {
-                                    "name": "grafana-datasource-prov"
+                                configMap: {
+                                    name: "grafana-datasource-prov"
                                 },
-                                "name": "datasource-provision"
+                                name: "datasource-provision"
                             }
                         ]
                     }
@@ -116,42 +116,42 @@ exports.resources = function(config, provider) {
             provider: provider
         }),
         new k8s.core.v1.Service("grafana", {
-         "kind": "Service",
-         "metadata": {
-            "name": "grafana",
-            "labels": {
-               "app": "grafana",
-               "component": "grafana"
+         kind: "Service",
+         metadata: {
+            name: "grafana",
+            labels: {
+               app: "grafana",
+               component: "grafana"
             },
-             "namespace": config.require("k8s-namespace")
+             namespace: config.require("k8s-namespace")
          },
-         "spec": {
-             "ports": [
+         spec: {
+             ports: [
                  {
-                     "name": "grafana",
-                     "port": 3000,
-                     "protocol": "TCP",
-                     "targetPort": 3000
+                     name: "grafana",
+                     port: 3000,
+                     protocol: "TCP",
+                     targetPort: 3000
                  }
              ],
-             "selector": {
-                 "app": "grafana",
-                 "component": "grafana"
+             selector: {
+                 app: "grafana",
+                 component: "grafana"
              }
          }
         }, {
             provider: provider
         }),
         new k8s.core.v1.ConfigMap("grafana-dashboard-prov", {
-            "metadata": {
-                "name": "grafana-dashboard-prov",
-                "labels": {
-                    "app": "grafana",
-                    "component": "grafana"
+            metadata: {
+                name: "grafana-dashboard-prov",
+                labels: {
+                    app: "grafana",
+                    component: "grafana"
                 },
-                "namespace": config.require("k8s-namespace")
+                namespace: config.require("k8s-namespace")
             },
-            "data": {
+            data: {
                 "dashboard.yml":
                 fs.readFileSync("grafana/dashboard.yml", "utf-8")
             }
@@ -159,15 +159,15 @@ exports.resources = function(config, provider) {
             provider: provider
         }),
         new k8s.core.v1.ConfigMap("grafana-datasource-prov", {
-            "metadata": {
-                "name": "grafana-datasource-prov",
-                "labels": {
-                    "app": "grafana",
-                    "component": "grafana"
+            metadata: {
+                name: "grafana-datasource-prov",
+                labels: {
+                    app: "grafana",
+                    component: "grafana"
                 },
-                "namespace": config.require("k8s-namespace")
+                namespace: config.require("k8s-namespace")
             },
-            "data": {
+            data: {
                 "datasource.yml":
                 fs.readFileSync("grafana/datasource.yml", "utf-8")
             }
@@ -176,15 +176,15 @@ exports.resources = function(config, provider) {
         }),
 
         new k8s.core.v1.ConfigMap("grafana-dashboards", {
-            "metadata": {
-                "name": "grafana-dashboards",
-                "labels": {
-                    "app": "grafana",
-                    "component": "grafana"
+            metadata: {
+                name: "grafana-dashboards",
+                labels: {
+                    app: "grafana",
+                    component: "grafana"
                 },
-                "namespace": config.require("k8s-namespace")
+                namespace: config.require("k8s-namespace")
             },
-            "data": {
+            data: {
                 "dashboard.json":
                 fs.readFileSync("grafana/dashboard.json", "utf-8")
             }
