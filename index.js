@@ -40,7 +40,7 @@ const engineVersion = gcp.container.getEngineVersions({
 
 const cluster = new gcp.container.Cluster("cluster", {
     name:  config.require("soc-id") + "-evs",
-    initialNodeCount: 2,
+    initialNodeCount: 6,
     minMasterVersion: engineVersion,
     nodeVersion: engineVersion,
     location: config.require("zone"),
@@ -210,10 +210,10 @@ const grafana = require("./grafana.js");
 grafana.resources(config, clusterProvider);
 
 const kcloak = require("./keycloak.js");
-kcloak.resources(config, clusterProvider);
+const kcResources = kcloak.resources(config, clusterProvider);
 
 const nginx = require("./nginx.js");
-nginx.resources(config, clusterProvider, ipAddress);
+const nginxResources = nginx.resources(config, clusterProvider, ipAddress);
 
 const prometheus = require("./prometheus.js");
 prometheus.resources(config, clusterProvider);
@@ -227,46 +227,8 @@ pulsarMgr.resources(config, clusterProvider);
 const vouch = require("./vouch.js");
 vouch.resources(config, clusterProvider);
 
-/*
-const extResources = new k8s.yaml.ConfigFile("k8s-resources", {
-    file: "all.yaml",
-    transformations: [
-        (obj) => {
-            if (obj.kind == "Service" && obj.metadata.name == "portal") {
-                obj.spec.loadBalancerIP = ipAddress.address
-            }
-        },
-        (obj) => {
-            if ("metadata" in obj) {
-                if ("namespace" in obj.metadata) {
-                    obj.metadata.namespace = socNamespace;
-                }
-            }
-        },
-        (obj) => {
-            if (obj.kind == "Deployment" && obj.metadata.name == "keycloak") {
-                var envs = obj.spec.template.spec.containers[0].env;
-                for (v in envs) {
-                    if (envs[v].name == "KEYCLOAK_PASSWORD") {
-                        envs[v].value = config.require("keycloak-admin-password");
-                    }
-                }
-            }
-        }
-    ],
-},
-{
-    provider: clusterProvider
-});
-
-
-const kDeploy = extResources.getResource("apps/v1/Deployment", "s01", "keycloak");
-const kService = extResources.getResource("v1/Service", "s01", "keycloak");
-const nDeploy = extResources.getResource("apps/v1/Deployment", "s01", "nginx");
-const pService = extResources.getResource("v1/Service", "s01", "portal");
-
 // Can't interact with keycloak until  these resources are running.
-kcResources = [ kDeploy, kService, nDeploy, pService ];
+const authResources = kcResources.concat(nginxResources);
 
 const authProvider = new keycloak.Provider("keycloak", {
     clientId:  "admin-cli",
@@ -277,7 +239,7 @@ const authProvider = new keycloak.Provider("keycloak", {
     rootCaCertificate: caCert.certPem,
     initialLogin: false
 }, {
-    dependsOn: kcResources
+    dependsOn: authResources
 });
 
 const realm = new keycloak.Realm("auth-realm", {
@@ -286,7 +248,7 @@ const realm = new keycloak.Realm("auth-realm", {
     enabled: true
 }, {
     provider: authProvider,
-    dependsOn: kcResources
+    dependsOn: authResources
 });
 
 const openidClient = new keycloak.openid.Client("auth-client", {
@@ -304,10 +266,7 @@ const openidClient = new keycloak.openid.Client("auth-client", {
     validRedirectUris: ["https://" + config.require("portal-host") + "/*"],
 }, {
     provider: authProvider,
-    dependsOn: [
-        extResources.getResource("Service", "keycloak"),
-        extResources.getResource("Deployment", "keycloak")
-    ]
+    dependsOn: authResources
 });
 
 const user = new keycloak.User("auth-user", {
@@ -321,13 +280,6 @@ const user = new keycloak.User("auth-user", {
     username: config.require("initial-user"),
 }, {
     provider: authProvider,
-    dependsOn: [
-        extResources.getResource("Service", "keycloak"),
-        extResources.getResource("Deployment", "keycloak")
-    ]
+    dependsOn: authResources
 });
 
-
-
-
-*/
