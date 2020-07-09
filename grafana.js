@@ -5,7 +5,10 @@ const fs = require('fs');
 
 exports.resources = function(config, provider) {
 
+    const root_url =  "https://" + config.require("portal-host") + "/grafana";
+
     return [
+
         new k8s.apps.v1.Deployment("grafana", {
             metadata: {
                 name: "grafana",
@@ -38,7 +41,7 @@ exports.resources = function(config, provider) {
                                 env: [
                                     {
                                         name: "GF_SERVER_ROOT_URL",
-                                        value: "https://" + config.require("portal-host") + "/grafana"
+                                        value: root_url
                                     },
                                     {
                                         name: "GF_AUTH_ANONYMOUS_ENABLED",
@@ -115,33 +118,35 @@ exports.resources = function(config, provider) {
         }, {
             provider: provider
         }),
+
         new k8s.core.v1.Service("grafana", {
-         kind: "Service",
-         metadata: {
-            name: "grafana",
-            labels: {
-               app: "grafana",
-               component: "grafana"
+            kind: "Service",
+            metadata: {
+                name: "grafana",
+                labels: {
+                    app: "grafana",
+                    component: "grafana"
+                },
+                namespace: config.require("k8s-namespace")
             },
-             namespace: config.require("k8s-namespace")
-         },
-         spec: {
-             ports: [
-                 {
-                     name: "grafana",
-                     port: 3000,
-                     protocol: "TCP",
-                     targetPort: 3000
-                 }
-             ],
-             selector: {
-                 app: "grafana",
-                 component: "grafana"
-             }
-         }
+            spec: {
+                ports: [
+                    {
+                        name: "grafana",
+                        port: 3000,
+                        protocol: "TCP",
+                        targetPort: 3000
+                    }
+                ],
+                selector: {
+                    app: "grafana",
+                    component: "grafana"
+                }
+            }
         }, {
             provider: provider
         }),
+
         new k8s.core.v1.ConfigMap("grafana-dashboard-prov", {
             metadata: {
                 name: "grafana-dashboard-prov",
@@ -158,6 +163,7 @@ exports.resources = function(config, provider) {
         }, {
             provider: provider
         }),
+
         new k8s.core.v1.ConfigMap("grafana-datasource-prov", {
             metadata: {
                 name: "grafana-datasource-prov",
@@ -191,6 +197,8 @@ exports.resources = function(config, provider) {
         }, {
             provider: provider
         })
+
     ]
+
 }
 
