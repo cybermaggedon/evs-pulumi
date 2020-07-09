@@ -37,6 +37,7 @@ const gaffer = function(config, provider, id, schema, table) {
                 metadata: {
                     name: id + "-schema",
                     labels: { app: gaffer, component: "gaffer" },
+                    namespace: config.require("k8s-namespace")
                 },
                 data: {
                     "schema.json": schema
@@ -140,4 +141,3 @@ exports.resources = function(config, provider) {
                       "threatgraph"))
 }
     
-
