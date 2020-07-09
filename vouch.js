@@ -85,7 +85,8 @@ exports.resources = function(config, provider) {
                                     },
                                     {
                                         "name": "VOUCH_JWT_SECRET",
-                                        "value": "asdklajsldjaslkdjalskdjad"
+                                        // FIXME: Use k8s secret
+                                        "value": config.require("jwt-secret")
                                     }
                                 ],
                                 "image": "voucher/vouch-proxy:0.16.2",

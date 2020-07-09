@@ -43,6 +43,7 @@ exports.resources = function(config, provider) {
                                     },
                                     {
                                         "name": "KEYCLOAK_PASSWORD",
+                                        // FIXME: Use k8s secret
                                         "value": config.require("keycloak-admin-password")
                                     },
                                     {
