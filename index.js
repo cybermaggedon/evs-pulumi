@@ -200,6 +200,33 @@ kibana.resources(config, clusterProvider);
 const cassandra = require("./cassandra.js");
 cassandra.resources(config, clusterProvider);
 
+const analytics = require("./analytics.js");
+analytics.resources(config, clusterProvider);
+
+const cybermon = require("./cybermon.js");
+cybermon.resources(config, clusterProvider);
+
+const grafana = require("./grafana.js");
+grafana.resources(config, clusterProvider);
+
+const kcloak = require("./keycloak.js");
+kcloak.resources(config, clusterProvider);
+
+const nginx = require("./nginx.js");
+nginx.resources(config, clusterProvider);
+
+const prometheus = require("./prometheus.js");
+prometheus.resources(config, clusterProvider);
+
+const pulsar = require("./pulsar.js");
+pulsar.resources(config, clusterProvider);
+
+const pulsarMgr = require("./pulsar-manager.js");
+pulsarMgr.resources(config, clusterProvider);
+
+const vouch = require("./vouch.js");
+vouch.resources(config, clusterProvider);
+
 /*
 const extResources = new k8s.yaml.ConfigFile("k8s-resources", {
     file: "all.yaml",
