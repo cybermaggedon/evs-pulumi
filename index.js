@@ -179,63 +179,69 @@ const portalSecret = new k8s.core.v1.Secret("portal-keys",
 
 exports.caCert = caCert.certPem;
 
-const hadoop = require("./hadoop.js");
-hadoop.resources(config, clusterProvider);
+const hadoop = require("./hadoop.js").
+      resources(config, clusterProvider);
 
-const zookeeper = require("./zookeeper.js");
-zookeeper.resources(config, clusterProvider);
+const zookeeper = require("./zookeeper.js").
+      resources(config, clusterProvider);
 
-const accumulo = require("./accumulo.js");
-accumulo.resources(config, clusterProvider);
+const accumulo = require("./accumulo.js").
+      resources(config, clusterProvider, hadoop.concat(zookeeper));
 
-const gaffer = require("./gaffer.js");
-gaffer.resources(config, clusterProvider);
+const gaffer = require("./gaffer.js").
+      resources(config, clusterProvider, accumulo);
 
-const elasticsearch = require("./elasticsearch.js");
-elasticsearch.resources(config, clusterProvider);
+const elasticsearch = require("./elasticsearch.js").
+      resources(config, clusterProvider);
 
-const kibana = require("./kibana.js");
-kibana.resources(config, clusterProvider);
+const kibana = require("./kibana.js").
+      resources(config, clusterProvider);
 
-const cassandra = require("./cassandra.js");
-cassandra.resources(config, clusterProvider);
+const cassandra = require("./cassandra.js").
+      resources(config, clusterProvider);
 
-const analytics = require("./analytics.js");
-analytics.resources(config, clusterProvider);
+const pulsar = require("./pulsar.js").
+      resources(config, clusterProvider);
 
-const cybermon = require("./cybermon.js");
-cybermon.resources(config, clusterProvider);
+const analytics = require("./analytics.js").
+      resources(config, clusterProvider,
+                pulsar.concat(gaffer).concat(elasticsearch).concat(gaffer));
 
-const grafana = require("./grafana.js");
-grafana.resources(config, clusterProvider);
+const cybermon = require("./cybermon.js").
+      resources(config, clusterProvider, pulsar);
 
-const kcloak = require("./keycloak.js");
-const kcResources = kcloak.resources(config, clusterProvider);
+const grafana = require("./grafana.js").
+      resources(config, clusterProvider);
 
-const nginx = require("./nginx.js");
-const nginxResources = nginx.resources(config, clusterProvider, ipAddress);
+const kcloak = require("./keycloak.js").
+      resources(config, clusterProvider);
 
-const prometheus = require("./prometheus.js");
-prometheus.resources(config, clusterProvider);
+const prometheus = require("./prometheus.js").
+      resources(config, clusterProvider);
 
-const pulsar = require("./pulsar.js");
-pulsar.resources(config, clusterProvider);
+const pulsarMgr = require("./pulsar-manager.js").
+      resources(config, clusterProvider);
 
-const pulsarMgr = require("./pulsar-manager.js");
-pulsarMgr.resources(config, clusterProvider);
+const vouch = require("./vouch.js").
+      resources(config, clusterProvider);
 
-const vouch = require("./vouch.js");
-vouch.resources(config, clusterProvider);
+// nginx depends on a whole heap of stuff.
+// FIXME: Is this the right way to do this?
+var upstreams = gaffer.concat(kibana).concat(elasticsearch).concat(grafana).
+    concat(prometheus).concat(pulsarMgr).concat(vouch).concat(kcloak);
+
+const nginx = require("./nginx.js").
+      resources(config, clusterProvider, ipAddress, upstreams);
 
 // Can't interact with keycloak until  these resources are running.
-const authResources = kcResources.concat(nginxResources);
+const authResources = kcloak.concat(nginx);
 
 const authProvider = new keycloak.Provider("keycloak", {
     clientId:  "admin-cli",
     username: "admin",
     password: config.require("keycloak-admin-password"),
     realm: "master",
-    url: "https://" + config.require("accounts-host") + "/",
+    url: "https://" + config.require("accounts-host") + "",
     rootCaCertificate: caCert.certPem,
     initialLogin: false
 }, {

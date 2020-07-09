@@ -6,7 +6,7 @@ const fs = require('fs');
 const name = "gaffer";
 const images = ["cybermaggedon/wildfly-gaffer:1.12.0b"];
 
-const gaffer = function(config, provider, id, schema, table) {
+const gaffer = function(config, provider, required, id, schema, table) {
 
     const zookeepers = config.get("gaffer.zookeeper-nodes") ?
           config.getNumber("gaffer.zookeeper-nodes") : 1;
@@ -98,7 +98,8 @@ const gaffer = function(config, provider, id, schema, table) {
                 }
             }
         }, {
-            provider: provider
+            provider: provider,
+            dependsOn: required
         });
     }();
 
@@ -120,7 +121,8 @@ const gaffer = function(config, provider, id, schema, table) {
             }
          }
     }, {
-        provider: provider
+        provider: provider,
+        dependsOn: required
     });
 
     return configMaps.concat([deployment, svc]);
@@ -129,15 +131,15 @@ const gaffer = function(config, provider, id, schema, table) {
 
 exports.name = name;
 exports.images = images;
-exports.resources = function(config, provider) {
+exports.resources = function(config, provider, required) {
 
     var threatSchema = fs.readFileSync("threatgraph-schema.json", "utf-8");
     var riskSchema = fs.readFileSync("riskgraph-schema.json", "utf-8");
 
     return [].
-        concat(gaffer(config, provider, "risk", riskSchema,
+        concat(gaffer(config, provider, required, "risk", riskSchema,
                       "riskgraph")).
-        concat(gaffer(config, provider, "threat", threatSchema,
+        concat(gaffer(config, provider, required,  "threat", threatSchema,
                       "threatgraph"))
 }
     

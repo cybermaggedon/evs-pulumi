@@ -224,7 +224,7 @@ const resources = function(config, provider) {
 
 
     return [ namenodeDepl ].
-        concat(datanodeDepl).
+        concat(datanodeDepls).
         concat(pvcs).
         concat([storageClass, svc]);
 

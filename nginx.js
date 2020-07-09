@@ -3,7 +3,7 @@ const pulumi = require("@pulumi/pulumi");
 const k8s = require("@pulumi/kubernetes");
 const fs = require('fs');
 
-exports.resources = function(config, provider, ipAddress) {
+exports.resources = function(config, provider, ipAddress, required) {
 
     const nginx_conf = fs.readFileSync("nginx.conf", "utf-8").
           replace(/%PORTAL_HOST%/g, config.require("portal-host")).
@@ -101,7 +101,8 @@ exports.resources = function(config, provider, ipAddress) {
                 }
             }
         }, {
-            provider: provider
+            provider: provider,
+            dependsOn: required
         }),
         new k8s.core.v1.Service("portal", {
             "metadata": {

@@ -2,7 +2,7 @@
 const pulumi = require("@pulumi/pulumi");
 const k8s = require("@pulumi/kubernetes");
 
-exports.resources = function(config, provider) {
+exports.resources = function(config, provider, required) {
     return [
         new k8s.apps.v1.Deployment("cybermon", {
             "metadata": {
@@ -104,7 +104,8 @@ exports.resources = function(config, provider) {
                 }
             }
         }, {
-            provider: provider
+            provider: provider,
+            dependsOn: required
         }),
         new k8s.core.v1.Service("cybermon", {
             "metadata": {

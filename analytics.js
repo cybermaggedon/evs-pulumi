@@ -19,7 +19,7 @@ const analytics = [
   ]}
 ];
 
-exports.resources = function(config, provider) {
+exports.resources = function(config, provider, required) {
     var rtn = [];
 
     for (i in analytics) {
@@ -78,7 +78,8 @@ exports.resources = function(config, provider) {
                 }
             }
         }, {
-            provider: provider
+            provider: provider,
+            dependsOn: required
         });
 
         var svc = new k8s.core.v1.Service(a.n, {
@@ -103,7 +104,8 @@ exports.resources = function(config, provider) {
                 }
             }
         }, {
-            provider: provider
+            provider: provider,
+            dependsOn: required
         });
 
         rtn.push(depl);

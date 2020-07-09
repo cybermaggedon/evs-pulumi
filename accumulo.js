@@ -5,7 +5,7 @@ const k8s = require("@pulumi/kubernetes");
 const name = "accumulo";
 const images = ["cybermaggedon/accumulo-gaffer:1.12.0b"];
 
-const resources = function(config, provider) {
+const resources = function(config, provider, required) {
 
     const tabletServers = config.get("gaffer.accumulo-tablet-servers") ?
           config.getNumber("gaffer.accumulo-tablet-servers") : 1;
@@ -148,7 +148,8 @@ const resources = function(config, provider) {
                 }
             }
         }, {
-            provider: provider
+            provider: provider,
+            dependsOn: required
         });
     };
           
@@ -185,7 +186,8 @@ const resources = function(config, provider) {
                 }
             }
         }, {
-            provider: provider
+            provider: provider,
+            dependsOn: required
         });
     };
 
@@ -236,7 +238,8 @@ const resources = function(config, provider) {
             }
          }
     }, {
-        provider: provider
+        provider: provider,
+        dependsOn: required
     });
 
     return deployments.concat([svc]);
