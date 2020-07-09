@@ -26,8 +26,8 @@ const resources = function(config, provider) {
             ],
             ports: containerPorts,
             resources: {
-                limits: { cpu: "0.5", memory: "1G" },
-                requests: { cpu: "0.05", memory: "1G" },
+                limits: { cpu: "0.5", memory: "256M" },
+                requests: { cpu: "0.05", memory: "256M" },
             },
             volumeMounts: [
                 { name: "data", mountPath: "/data" }
