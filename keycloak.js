@@ -11,6 +11,7 @@ exports.resources = function(config, provider) {
           config.get("keycloak-volume-type") : "pd-standard";
 
     return [
+
         new k8s.apps.v1.Deployment("keycloak", {
             metadata: {
                 name: "keycloak",
@@ -46,12 +47,21 @@ exports.resources = function(config, provider) {
                                 env: [
                                     {
                                         name: "KEYCLOAK_USER",
-                                        value: "admin"
+                                        valueFrom: {
+                                            secretKeyRef: {
+                                                name: "keycloak-admin-keys",
+                                                key: "username"
+                                            }
+                                        }
                                     },
                                     {
                                         name: "KEYCLOAK_PASSWORD",
-                                        // FIXME: Use k8s secret
-                                        value: config.require("keycloak-admin-password")
+                                        valueFrom: {
+                                            secretKeyRef: {
+                                                name: "keycloak-admin-keys",
+                                                key: "password"
+                                            }
+                                        }
                                     },
                                     {
                                         name: "JAVA_OPTS",
@@ -110,6 +120,20 @@ exports.resources = function(config, provider) {
         }, {
             provider: provider
         }),
+
+        new k8s.core.v1.Secret("keycloak-admin-keys", {
+            metadata: {
+                name: "keycloak-admin-keys",
+                namespace: config.require("k8s-namespace")
+            },
+            stringData: {
+                "username": "admin",
+                "password": config.requireSecret("keycloak-admin-password")
+            }
+        }, {
+            provider: provider
+        }),
+
         new k8s.core.v1.Service("keycloak", {
             metadata: {
                 name: "keycloak",
@@ -136,6 +160,7 @@ exports.resources = function(config, provider) {
         }, {
             provider: provider
         }),
+        
         new k8s.storage.v1.StorageClass("keycloak", {
             metadata: {
                 name: "keycloak",
@@ -152,6 +177,7 @@ exports.resources = function(config, provider) {
         }, {
             provider: provider
         }),
+
         new k8s.core.v1.PersistentVolumeClaim("keycloak", {
             metadata: {
                 name: "keycloak",
@@ -176,6 +202,7 @@ exports.resources = function(config, provider) {
         }, {
             provider: provider
         })
+
     ];
 
 }

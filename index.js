@@ -40,7 +40,7 @@ const engineVersion = gcp.container.getEngineVersions({
 
 const cluster = new gcp.container.Cluster("cluster", {
     name:  config.require("soc-id") + "-evs",
-    initialNodeCount: 6,
+    initialNodeCount: config.require("initial-node-count"),
     minMasterVersion: engineVersion,
     nodeVersion: engineVersion,
     location: config.require("zone"),
@@ -239,7 +239,7 @@ const authResources = kcloak.concat(nginx);
 const authProvider = new keycloak.Provider("keycloak", {
     clientId:  "admin-cli",
     username: "admin",
-    password: config.require("keycloak-admin-password"),
+    password: config.requireSecret("keycloak-admin-password"),
     realm: "master",
     url: "https://" + config.require("accounts-host") + "",
     rootCaCertificate: caCert.certPem,
@@ -286,7 +286,7 @@ const user = new keycloak.User("auth-user", {
     enabled: true,
     initialPassword: {
         temporary: true,
-        value: config.require("initial-password"),
+        value: config.requireSecret("initial-password"),
     },
     realmId: realm.id,
     username: config.require("initial-user"),
