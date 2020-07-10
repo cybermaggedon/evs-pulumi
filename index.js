@@ -9,8 +9,13 @@ const config = new pulumi.Config();
 
 var socNamespace = config.require("k8s-namespace");
 
-const ipAddress = new gcp.compute.Address("address", {
-    name: config.require("soc-id") + "-evs",
+const webAddress = new gcp.compute.Address("web-address", {
+    name: config.require("soc-id") + "-web",
+    region: config.require("region")
+});
+
+const probeAddress = new gcp.compute.Address("probe-address", {
+    name: config.require("soc-id") + "-probe",
     region: config.require("region")
 });
 
@@ -23,15 +28,23 @@ const portalDns = new gcp.dns.RecordSet("portal-dns", {
     type: "A",
     ttl: 300,
     managedZone: dnsZone.then(zone => zone.name),
-    rrdatas: [ipAddress.address],
+    rrdatas: [webAddress.address],
 });
-              
+
 const accountsDns = new gcp.dns.RecordSet("account-dns", {
     name: config.require("accounts-host") + ".",
     type: "A",
     ttl: 300,
     managedZone: dnsZone.then(zone => zone.name),
-    rrdatas: [ipAddress.address],
+    rrdatas: [webAddress.address],
+});
+
+const probeDns = new gcp.dns.RecordSet("probe-dns", {
+    name: config.require("probe-host") + ".",
+    type: "A",
+    ttl: 300,
+    managedZone: dnsZone.then(zone => zone.name),
+    rrdatas: [probeAddress.address],
 });
 
 const engineVersion = gcp.container.getEngineVersions({
@@ -132,7 +145,7 @@ const portalReq = new tls.CertRequest("portal-req", {
         config.require("portal-host"),
         config.require("accounts-host")
     ],
-    ipAddresses: [ipAddress.address],
+    ipAddresses: [webAddress.address],
 });
 
 const portalCert = new tls.LocallySignedCert("portal-cert", {
@@ -208,7 +221,7 @@ const analytics = require("./analytics.js").
                 pulsar.concat(gaffer).concat(elasticsearch).concat(gaffer));
 
 const cybermon = require("./cybermon.js").
-      resources(config, clusterProvider, pulsar);
+      resources(config, clusterProvider, pulsar, probeAddress);
 
 const grafana = require("./grafana.js").
       resources(config, clusterProvider);
@@ -231,7 +244,7 @@ var upstreams = gaffer.concat(kibana).concat(elasticsearch).concat(grafana).
     concat(prometheus).concat(pulsarMgr).concat(vouch).concat(kcloak);
 
 const nginx = require("./nginx.js").
-      resources(config, clusterProvider, ipAddress, upstreams);
+      resources(config, clusterProvider, webAddress, upstreams);
 
 // Can't interact with keycloak until  these resources are running.
 const authResources = kcloak.concat(nginx);
@@ -243,7 +256,8 @@ const authProvider = new keycloak.Provider("keycloak", {
     realm: "master",
     url: "https://" + config.require("accounts-host") + "",
     rootCaCertificate: caCert.certPem,
-    initialLogin: false
+    initialLogin: false,
+    clientTimeout: 90
 }, {
     dependsOn: authResources
 });

@@ -12,8 +12,8 @@
 ### Define stack
 
 ```
-  socid=soc02
-  domain=<MY-DOMAIN>
+  socid=<MY-DOMAIN>
+  domain=cyberapocalypse.co.uk
   pulumi stack init ${socid}
   pulumi config set gcp:project <GOOGLE-PROJECT>
   pulumi config set soc-id ${socid}
@@ -24,11 +24,12 @@
   pulumi config set auth-domain "${domain}"
   pulumi config set accounts-host accounts.${socid}.portal.${domain}
   pulumi config set portal-host ${socid}.portal.${domain}
+  pulumi config set probe-host probe.${socid}.portal.${domain}
   pulumi config set dns-zone portal
   pulumi config set k8s-namespace ${socid}
   pulumi config set --secret keycloak-admin-password <ADMIN-PASS>
-  pulumi config set initial-user user
-  pulumi config set initial-email user@cyberapocalypse.co.uk
+  pulumi config set initial-user <MY-USERNAME>
+  pulumi config set initial-email <MY-EMAIL>
   pulumi config set --secret initial-password <MY-PASSWORD>
   pulumi config set --secret jwt-secret $(dd if=/dev/urandom bs=50 count=1 | base64)
 
@@ -38,12 +39,18 @@
 
 - `pulumi up`
 
+### Undeploy
+
+- `pulumi destroy`
+- `pulumi stack rm ${socid} -y`
+
 ## Configuration
 
 | key                            | purpose |
 |--------------------------------|---------|
 | portal-host                    | hostname of main web interface         |
 | accounts-host                  | hostname of auth interface             |
+| probe-host                     | hostname of cyberprobe delivery interface |
 | node-type                      | K8s node type (e.g. n1-standard-2      |
 | initial-node-count             | Initial k8s node deploy (e.g. 3)       |
 | k8s-namespace                  | K8s namespace to use e.g. default      |

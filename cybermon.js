@@ -3,8 +3,10 @@ const pulumi = require("@pulumi/pulumi");
 const k8s = require("@pulumi/kubernetes");
 const fs = require('fs');
 
-exports.resources = function(config, provider, required) {
+exports.resources = function(config, provider, required, address) {
+    
     return [
+
         new k8s.apps.v1.Deployment("cybermon", {
             metadata: {
                 labels: {
@@ -108,6 +110,7 @@ exports.resources = function(config, provider, required) {
             provider: provider,
             dependsOn: required
         }),
+
         new k8s.core.v1.Service("cybermon", {
             metadata: {
                 labels: {
@@ -118,6 +121,7 @@ exports.resources = function(config, provider, required) {
                 namespace: config.require("k8s-namespace")
             },
             spec: {
+                loadBalancerIP: address.address,
                 ports: [
                     {
                         name: "etsi",
@@ -135,11 +139,13 @@ exports.resources = function(config, provider, required) {
                 selector: {
                     app: "cybermon",
                     component: "cybermon"
-                }
+                },
+                type: "LoadBalancer"
             }
         }, {
             provider: provider
         }),
+
         new k8s.core.v1.ConfigMap("cybermon-config", {
             metadata: {
                 labels: {
@@ -155,6 +161,7 @@ exports.resources = function(config, provider, required) {
         }, {
             provider: provider
         })
+
     ];
 
 }
