@@ -7,6 +7,12 @@ const images = ["elasticsearch:7.7.1"];
 
 const resources = function(config, provider) {
 
+    const volSize = config.get("elasticsearch-volume-size") ?
+          config.get("elasticsearch-volume-size") : "10G";
+
+    const volType = config.get("elasticsearch-volume-type") ?
+          config.get("elasticsearch-volume-type") : "pd-ssd";
+
     const containerPorts = [
         { name: "elasticsearch", containerPort: 9200 }
     ];
@@ -98,7 +104,7 @@ const resources = function(config, provider) {
             name: "elasticsearch",
             labels: { app: "elasticsearch", component: "elasticsearch" },
         },
-        parameters: { type: "pd-ssd" },
+        parameters: { type: volType },
         provisioner: "kubernetes.io/gce-pd",
         reclaimPolicy:  "Retain"
     }, {
@@ -116,7 +122,7 @@ const resources = function(config, provider) {
             spec: {
                 accessModes: [ "ReadWriteOnce" ],
                 resources: {
-                    requests: { storage: "10G" }
+                    requests: { storage: volSize }
                 },
                 storageClassName: "elasticsearch",
                 volumeMode: "Filesystem"

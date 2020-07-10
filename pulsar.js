@@ -3,6 +3,13 @@ const pulumi = require("@pulumi/pulumi");
 const k8s = require("@pulumi/kubernetes");
 
 exports.resources = function(config, provider) {
+
+    const volSize = config.get("pulsar-volume-size") ?
+          config.get("pulsar-volume-size") : "10G";
+
+    const volType = config.get("pulsar-volume-type") ?
+          config.get("pulsar-volume-type") : "pd-ssd";
+
     return [
         new k8s.apps.v1.Deployment("pulsar", {
             metadata: {
@@ -127,7 +134,7 @@ exports.resources = function(config, provider) {
                 },
             },
             parameters: {
-                type: "pd-ssd"
+                type: volType
             },
             provisioner: "kubernetes.io/gce-pd",
             reclaimPolicy: "Retain"
@@ -149,7 +156,7 @@ exports.resources = function(config, provider) {
                 ],
                 resources: {
                     requests: {
-                        storage: "10G"
+                        storage: volSize
                     }
                 },
                 storageClassName: "pulsar",

@@ -7,6 +7,12 @@ const images = ["cybermaggedon/zookeeper:3.6.1"];
 
 const resources = function(config, provider) {
 
+    const volSize = config.get("zookeeper-volume-size") ?
+          config.get("zookeeper-volume-size") : "5G";
+
+    const volType = config.get("zookeeper-volume-type") ?
+          config.get("zookeeper-volume-type") : "pd-ssd";
+
     const zookeepers = config.get("gaffer.zookeeper-nodes") ?
           config.getNumber("gaffer.zookeeper-nodes") : 1;
 
@@ -93,7 +99,7 @@ const resources = function(config, provider) {
             name: "zookeeper",
             labels: { app: "zookeeper", component: "gaffer" },
         },
-        parameters: { type: "pd-ssd" },
+        parameters: { type: volType },
         provisioner: "kubernetes.io/gce-pd",
         reclaimPolicy:  "Retain"
     }, {
@@ -112,7 +118,7 @@ const resources = function(config, provider) {
             spec: {
                 accessModes: [ "ReadWriteOnce" ],
                 resources: {
-                    requests: { storage: "5G" }
+                    requests: { storage: volSize }
                 },
                 storageClassName: "zookeeper",
                 volumeMode: "Filesystem"

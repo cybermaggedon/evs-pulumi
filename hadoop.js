@@ -7,6 +7,15 @@ const images = ["cybermaggedon/hadoop:2.10.0"];
 
 const resources = function(config, provider) {
 
+    const namenodeSize = config.get("hadoop-namenode-size") ?
+          config.get("hadoop-namenode-size") : "10G";
+
+    const datanodeSize = config.get("hadoop-datanode-size") ?
+          config.get("hadoop-datanode-size") : "10G";
+
+    const volType = config.get("hadoop-volume-type") ?
+          config.get("hadoop-volume-type") : "pd-ssd";
+
     const replication = config.get("gaffer.hadoop-replication") ?
           config.getNumber("gaffer.hadoop-replication") : 1;
 
@@ -161,7 +170,7 @@ const resources = function(config, provider) {
             name: "hadoop",
             labels: { app: "hadoop", component: "gaffer" },
         },
-        parameters: { type: "pd-ssd" },
+        parameters: { type: volType },
         provisioner: "kubernetes.io/gce-pd",
         reclaimPolicy:  "Retain"
     }, {
@@ -191,11 +200,11 @@ const resources = function(config, provider) {
     
     const pvcs = function() {
         var rtn = [];
-        rtn.push(pvc("hadoop-namenode", "5G"));
+        rtn.push(pvc("hadoop-namenode", namenodeSize));
         for (var id = 0; id < hadoops; id++) {
             const count = zeroPad(id, 4);
             const instance = name + "-data-" + count;
-            rtn.push(pvc(instance, "5G"));
+            rtn.push(pvc(instance, datanodeSize));
         }
         return rtn;
     }();

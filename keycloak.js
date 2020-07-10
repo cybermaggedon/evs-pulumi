@@ -3,6 +3,13 @@ const pulumi = require("@pulumi/pulumi");
 const k8s = require("@pulumi/kubernetes");
 
 exports.resources = function(config, provider) {
+
+    const volSize = config.get("keycloak-volume-size") ?
+          config.get("keycloak-volume-size") : "5G";
+
+    const volType = config.get("keycloak-volume-type") ?
+          config.get("keycloak-volume-type") : "pd-standard";
+
     return [
         new k8s.apps.v1.Deployment("keycloak", {
             metadata: {
@@ -138,7 +145,7 @@ exports.resources = function(config, provider) {
                 },
             },
             parameters: {
-                type: "pd-ssd"
+                type: volType
             },
             provisioner: "kubernetes.io/gce-pd",
             reclaimPolicy: "Retain"
@@ -160,7 +167,7 @@ exports.resources = function(config, provider) {
                 ],
                 resources: {
                     requests: {
-                        storage: "10G"
+                        storage: volSize
                     }
                 },
                 storageClassName: "keycloak",

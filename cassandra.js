@@ -7,6 +7,12 @@ const images = ["cassandra:3.11.6"];
 
 const resources = function(config, provider) {
 
+    const volSize = config.get("cassandra-volume-size") ?
+          config.get("cassandra-volume-size") : "10G";
+
+    const volType = config.get("cassandra-volume-type") ?
+          config.get("cassandra-volume-type") : "pd-ssd";
+
     const containerPorts = [
         { name: "cassandra", containerPort: 9042 }
     ];
@@ -78,7 +84,7 @@ const resources = function(config, provider) {
             name: "cassandra",
             labels: { app: "cassandra", component: "cassandra" },
         },
-        parameters: { type: "pd-ssd" },
+        parameters: { type: volType },
         provisioner: "kubernetes.io/gce-pd",
         reclaimPolicy:  "Retain"
     }, {
@@ -96,7 +102,7 @@ const resources = function(config, provider) {
             spec: {
                 accessModes: [ "ReadWriteOnce" ],
                 resources: {
-                    requests: { storage: "10G" }
+                    requests: { storage: volSize }
                 },
                 storageClassName: "cassandra",
                 volumeMode: "Filesystem"
