@@ -6,6 +6,9 @@ const fs = require('fs');
 exports.resources = function(config, provider) {
 
     const root_url =  "https://" + config.require("portal-host") + "/grafana";
+    
+    const orgName = config.get("grafana-org-name") ?
+          config.get("grafana-org-name") : "cyberapocalypse";
 
     return [
 
@@ -49,8 +52,7 @@ exports.resources = function(config, provider) {
                                     },
                                     {
                                         name: "GF_ORG_NAME",
-                                        // FIXME
-                                        value: "cyberapocalypse"
+                                        value: orgName
                                     },
                                     {
                                         name: "GF_AUTH_ANONYMOUS_ORG_ROLE",

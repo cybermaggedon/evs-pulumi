@@ -248,9 +248,15 @@ const authProvider = new keycloak.Provider("keycloak", {
     dependsOn: authResources
 });
 
+const authRealmName = config.get("auth-realm-name") ?
+      config.get("auth-realm-name") : "cyberapocalypse";
+
+const authClientId = config.get("auth-client-id") ?
+      config.get("auth-client-id") : "evs";
+
 const realm = new keycloak.Realm("auth-realm", {
-    realm: "cyberapocalypse",
-    displayName: "Cyberapocalypse authentication realm",
+    realm: authRealmName,
+    displayName: authRealmName + " authentication realm",
     enabled: true
 }, {
     provider: authProvider,
@@ -259,9 +265,9 @@ const realm = new keycloak.Realm("auth-realm", {
 
 const openidClient = new keycloak.openid.Client("auth-client", {
     accessType: "PUBLIC",
-    clientId: "cyberapocalypse",
-    name: "cyberapocalypse",
-    descrption: "cyberapocalypse authentication portal",
+    clientId: authClientId,
+    name: authClientId,
+    descrption: "EVS portal",
     enabled: true,
     realmId: realm.id,
     standardFlowEnabled: true,

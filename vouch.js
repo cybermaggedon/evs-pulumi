@@ -3,6 +3,13 @@ const pulumi = require("@pulumi/pulumi");
 const k8s = require("@pulumi/kubernetes");
 
 exports.resources = function(config, provider) {
+
+    const authRealmName = config.get("auth-realm-name") ?
+          config.get("auth-realm-name") : "cyberapocalypse";
+
+    const authClientId = config.get("auth-client-id") ?
+          config.get("auth-client-id") : "evs";
+
     return [
         new k8s.apps.v1.Deployment("vouch", {
             metadata: {
@@ -57,7 +64,7 @@ exports.resources = function(config, provider) {
                                     },
                                     {
                                         name: "OAUTH_CLIENT_ID",
-                                        value: "cyberapocalypse"
+                                        value: authClientId
                                     },
                                     {
                                         name: "OAUTH_CLIENT_SECRET",
@@ -69,15 +76,15 @@ exports.resources = function(config, provider) {
                                     },
                                     {
                                         name: "OAUTH_AUTH_URL",
-                                        value: "https://" + config.require("accounts-host") + "/auth/realms/cyberapocalypse/protocol/openid-connect/auth"
+                                        value: "https://" + config.require("accounts-host") + "/auth/realms/" + authRealmName + "/protocol/openid-connect/auth"
                                     },
                                     {
                                         name: "OAUTH_TOKEN_URL",
-                                        value: "http://keycloak:8080/auth/realms/cyberapocalypse/protocol/openid-connect/token"
+                                        value: "http://keycloak:8080/auth/realms/" + authRealmName + "/protocol/openid-connect/token"
                                     },
                                     {
                                         name: "OAUTH_USER_INFO_URL",
-                                        value: "http://keycloak:8080/auth/realms/cyberapocalypse/protocol/openid-connect/userinfo"
+                                        value: "http://keycloak:8080/auth/realms/" + authRealmName + "/protocol/openid-connect/userinfo"
                                     },
                                     {
                                         name: "OAUTH_SCOPES",
