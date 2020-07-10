@@ -1,11 +1,11 @@
 
 const pulumi = require("@pulumi/pulumi");
 const k8s = require("@pulumi/kubernetes");
-const fs = require('fs');
+const defs = require("./defs");
 
 exports.resources = function(config, provider) {
 
-    const root_url =  "https://" + config.require("portal-host") + "/grafana";
+    const root_url =  "https://" + defs.getPortalHost(config) + "/grafana";
 
     return [
 
@@ -16,7 +16,7 @@ exports.resources = function(config, provider) {
                     instance: "grafana", "app": "grafana",
                     component: "grafana"
                 },
-                namespace: config.require("k8s-namespace")
+                namespace: defs.getNamespace(config)
             },
             spec: {
                 replicas: 1,
@@ -127,7 +127,7 @@ exports.resources = function(config, provider) {
                     app: "grafana",
                     component: "grafana"
                 },
-                namespace: config.require("k8s-namespace")
+                namespace: defs.getNamespace(config)
             },
             spec: {
                 ports: [
@@ -154,11 +154,10 @@ exports.resources = function(config, provider) {
                     app: "grafana",
                     component: "grafana"
                 },
-                namespace: config.require("k8s-namespace")
+                namespace: defs.getNamespace(config)
             },
             data: {
-                "dashboard.yml":
-                fs.readFileSync("grafana/dashboard.yml", "utf-8")
+                "dashboard.yml": defs.readFile("grafana/dashboard.yml")
             }
         }, {
             provider: provider
@@ -171,11 +170,10 @@ exports.resources = function(config, provider) {
                     app: "grafana",
                     component: "grafana"
                 },
-                namespace: config.require("k8s-namespace")
+                namespace: defs.getNamespace(config)
             },
             data: {
-                "datasource.yml":
-                fs.readFileSync("grafana/datasource.yml", "utf-8")
+                "datasource.yml": defs.readFile("grafana/datasource.yml")
             }
         }, {
             provider: provider
@@ -188,11 +186,10 @@ exports.resources = function(config, provider) {
                     app: "grafana",
                     component: "grafana"
                 },
-                namespace: config.require("k8s-namespace")
+                namespace: defs.getNamespace(config)
             },
             data: {
-                "dashboard.json":
-                fs.readFileSync("grafana/dashboard.json", "utf-8")
+                "dashboard.json": defs.readFile("grafana/dashboard.json")
             }
         }, {
             provider: provider
