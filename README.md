@@ -1,11 +1,15 @@
 
+# Event stream cluster
+
+## Install
+
 - Install Pulumi
-- npm install
-- pulumi login --local
-- 
+- `npm install`
+- `pulumi login --local`
 
-- Define stack
+## Define stack
 
+```
   socid=soc02
   domain=<MY-DOMAIN>
   pulumi stack init ${socid}
@@ -27,7 +31,11 @@
   pulumi config set --secret initial-password <MY-PASSWORD>
   pulumi config set --secret jwt-secret $(dd if=/dev/urandom bs=50 count=1 | base64)
 
-- pulumi up
+```
+
+## Ship it
+
+- `pulumi up`
 
 ## Configuration
 
