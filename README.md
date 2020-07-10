@@ -27,14 +27,14 @@ subdomain entry for portal on random DNS service for the Google domain.
 ### Install
 
 - Install Pulumi
+- `git clone https://github.com/cybermaggedon/evs-pulumi`
+- `cd evs-pulumi`
 - `npm install`
 - `pulumi login --local`
 
 ### Define stack
   
 ```
-  git clone https://github.com/cybermaggedon/evs-pulumi
-  cd evs-pulumi
 
   # Just an identifier to make things unique if you deploy more than one.
   socid=<MY-DOMAIN>
@@ -118,7 +118,6 @@ Point cyberprobe at the probe address you defined above e.g.
     "targets": [ {
         "address": "10.0.0.0/8", "device": "my-device"
     } ],
-
     "endpoints": [ {
             "hostname": "<PROBE-ADDRESS>",
             "type": "etsi", "port": 9000, "transport": "tcp"
