@@ -1,13 +1,15 @@
 
 # Event stream cluster
 
-## Install
+## Deployment
+
+### Install
 
 - Install Pulumi
 - `npm install`
 - `pulumi login --local`
 
-## Define stack
+### Define stack
 
 ```
   socid=soc02
@@ -22,7 +24,6 @@
   pulumi config set auth-domain "${domain}"
   pulumi config set accounts-host accounts.${socid}.portal.${domain}
   pulumi config set portal-host ${socid}.portal.${domain}
-
   pulumi config set dns-zone portal
   pulumi config set k8s-namespace ${socid}
   pulumi config set --secret keycloak-admin-password <ADMIN-PASS>
@@ -33,7 +34,7 @@
 
 ```
 
-## Ship it
+### Ship it
 
 - `pulumi up`
 
