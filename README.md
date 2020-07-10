@@ -100,14 +100,35 @@ press the plus button to install the CA.
 
 ### Login
 
-Go to https://<portal-host>
+Go to `https://<portal-host>`
 
 You defined the portal host and initial user/pass above.  This gives you links
 to Grafana, Prometheus and Kibana.
 
+### Input data
+
+Point cyberprobe at the probe address you defined above e.g.
+
+```
+{
+    "interfaces": [ {
+            "interface": "enp0s3", "delay": 0,
+	    "filter": "not port 9000 and not port 9001"
+    } ],
+    "targets": [ {
+        "address": "10.0.0.0/8", "device": "my-device"
+    } ],
+
+    "endpoints": [ {
+            "hostname": "<PROBE-ADDRESS>",
+            "type": "etsi", "port": 9000, "transport": "tcp"
+    } ]
+}
+```
+
 ### Admin
 
-Go to https://<accounts-host>, log in using the user 'admin' and the
+Go to `https://<accounts-host>`, log in using the user 'admin' and the
 Keycloak admin password specified above.
 
 ## Undeploy
