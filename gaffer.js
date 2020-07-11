@@ -64,7 +64,23 @@ const gaffer = function(config, provider, required, id, schema, table) {
         volumeMounts: [
             { name: "schema", mountPath: "/usr/local/wildfly/schema",
               readOnly: true }
-        ]
+        ],
+        readinessProbe: {
+            initialDelaySeconds: 15,
+            periodSeconds: 5,
+            httpGet: {
+                port: 8080,
+                path: "/rest/v2/graph/config/schema"
+            }
+        },
+        livenessProbe: {
+            initialDelaySeconds: 45,
+            periodSeconds: 10,
+            httpGet: {
+                port: 8080,
+                path: "/rest/v2/graph/config/schema"
+            }
+        }
     };
 
     const deployment = function() {

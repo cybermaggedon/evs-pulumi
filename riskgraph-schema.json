@@ -3,7 +3,8 @@
         "actor": {
             "vertex": "string",
             "properties": {
-                "group": "string",
+                "actorgroup": "string",
+                "network": "string",
                 "count": "int",
                 "time": "timestamp.set"
             }

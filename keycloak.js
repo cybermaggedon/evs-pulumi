@@ -98,7 +98,23 @@ exports.resources = function(config, provider) {
                                         name: "data",
                                         readOnly: false
                                     }
-                                ]
+                                ],
+                                readinessProbe: {
+                                    initialDelaySeconds: 90,
+                                    periodSeconds: 5,
+                                    httpGet: {
+                                        port: 8080,
+                                        path: "/"
+                                    }
+                                },
+                                livenessProbe: {
+                                    initialDelaySeconds: 90,
+                                    periodSeconds: 10,
+                                    httpGet: {
+                                        port: 8080,
+                                        path: "/"
+                                    }
+                                }
                             }
                         ],
                         securityContext: {
