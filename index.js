@@ -238,10 +238,14 @@ const pulsarMgr = require("./pulsar-manager.js").
 const vouch = require("./vouch.js").
       resources(config, clusterProvider);
 
+const ui = require("./ui.js").
+      resources(config, clusterProvider);
+
 // nginx depends on a whole heap of stuff.
 // FIXME: Is this the right way to do this?
 var upstreams = gaffer.concat(kibana).concat(elasticsearch).concat(grafana).
-    concat(prometheus).concat(pulsarMgr).concat(vouch).concat(kcloak);
+    concat(prometheus).concat(pulsarMgr).concat(vouch).concat(kcloak).
+    concat(ui);
 
 const nginx = require("./nginx.js").
       resources(config, clusterProvider, webAddress, upstreams);

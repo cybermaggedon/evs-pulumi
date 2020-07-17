@@ -8,7 +8,7 @@ const analytics = [
   {n: "evs-elasticsearch", v: "0.4.4", e: [
       {name: "ELASTICSEARCH_URL", value:"http://elasticsearch:9200"}
   ]},
-  {n: "evs-threatgraph", v: "0.4.2", e: [
+  {n: "evs-threatgraph", v: "0.4.4", e: [
       {name:"GAFFER_URL", value:"http://threat-graph:8080/rest/v2"}
   ]},
   {n: "evs-riskgraph", v: "0.4.2", e: [

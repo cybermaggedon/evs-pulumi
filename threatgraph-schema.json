@@ -308,6 +308,16 @@
                 "time": "timestamp.set"
             }
         },
+        "connects": {
+            "source": "string",
+            "destination": "string",
+            "directed": "true",
+            "properties": {
+                "type": "string",
+                "count": "int",
+                "time": "timestamp.set"
+            }
+        },
         "isrunning": {
             "source": "string",
             "destination": "string",
