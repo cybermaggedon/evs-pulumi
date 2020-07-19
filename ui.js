@@ -37,7 +37,7 @@ exports.resources = function(config, provider) {
                         containers: [
                             {
                                 name: "ui",
-                                image: "docker.io/cybermaggedon/evs-web:0.2",
+                                image: "docker.io/cybermaggedon/evs-web:0.3",
                                 ports: [
                                     {
                                         containerPort: 8080,
