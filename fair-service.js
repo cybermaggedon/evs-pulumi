@@ -6,13 +6,13 @@ const fs = require('fs');
 exports.resources = function(config, provider) {
 
     return [
-        new k8s.apps.v1.Deployment("ui", {
+        new k8s.apps.v1.Deployment("fair-service", {
             metadata: {
-                name: "ui",
+                name: "fair-service",
                 labels: {
-                    instance: "ui",
-                    app: "ui",
-                    component: "ui"
+                    instance: "fair-service",
+                    app: "fair-service",
+                    component: "fair-service"
                 },
                 namespace: config.require("k8s-namespace")
             },
@@ -20,24 +20,24 @@ exports.resources = function(config, provider) {
                 replicas: 1,
                 selector: {
                     matchLabels: {
-                        instance: "ui",
-                        app: "ui",
-                        component: "ui"
+                        instance: "fair-service",
+                        app: "fair-service",
+                        component: "fair-service"
                     }
                 },
                 template: {
                     metadata: {
                         labels: {
-                            instance: "ui",
-                            app: "ui",
-                            component: "ui"
+                            instance: "fair-service",
+                            app: "fair-service",
+                            component: "fair-service"
                         }
                     },
                     spec: {
                         containers: [
                             {
-                                name: "ui",
-                                image: "docker.io/cybermaggedon/evs-web:0.5",
+                                name: "fair-service",
+                                image: "docker.io/cybermaggedon/fair-service:0.1",
                                 ports: [
                                     {
                                         containerPort: 8080,
@@ -46,12 +46,12 @@ exports.resources = function(config, provider) {
                                 ],
                                 resources: {
                                     limits: {
-                                        cpu: "0.2",
-                                        memory: "128M"
+                                        cpu: "1.0",
+                                        memory: "256M"
                                     },
                                     requests: {
-                                        cpu: "0.05",
-                                        memory: "128M"
+                                        cpu: "0.1",
+                                        memory: "256M"
                                     }
                                 }
                             }
@@ -62,12 +62,12 @@ exports.resources = function(config, provider) {
         }, {
             provider: provider
         }),
-        new k8s.core.v1.Service("ui", {
+        new k8s.core.v1.Service("fair-service", {
             metadata: {
-                name: "ui",
+                name: "fair-service",
                 labels: {
-                    app: "ui",
-                    component: "ui"
+                    app: "fair-service",
+                    component: "fair-service"
                 },
                 namespace: config.require("k8s-namespace")
             },
@@ -81,8 +81,8 @@ exports.resources = function(config, provider) {
                     }
                 ],
                 selector: {
-                    app: "ui",
-                    component: "ui"
+                    app: "fair-service",
+                    component: "fair-service"
                 }
             }
         }, {
