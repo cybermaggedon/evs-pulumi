@@ -115,7 +115,7 @@ const resources = function(config, provider, required) {
         }
     };
 
-    const deployment = function(proc) {
+    const deployment = function(proc, required) {
         const instance = "accumulo-" + proc;
         return new k8s.apps.v1.Deployment(instance, {
             metadata: {
@@ -153,7 +153,7 @@ const resources = function(config, provider, required) {
         });
     };
           
-    const tabletServerDeployment = function(id) {
+    const tabletServerDeployment = function(id, required) {
         const instance = "accumulo-ts-" + zeroPad(id, 4);
         return new k8s.apps.v1.Deployment(instance, {
             metadata: {
@@ -195,13 +195,21 @@ const resources = function(config, provider, required) {
         var rtn = [];
 
         // Deployments for master, gc, tracer, monitor.
-        rtn.push(deployment("master"));
-        rtn.push(deployment("gc"));
-        rtn.push(deployment("tracer"));
-        rtn.push(deployment("monitor"));
+
+	// Dependencies are passed in to us in the 'required' variable
+	// (Hadoop, Zookeeper).  In addition, we'll make accumulo instances
+	// depend on the master.  This is a work-around to an initialisation
+	// race-condition.  Running 'accumulo init' multiple times in parallel
+	// isn't safe.  It would be ideal to fix that in the Accumulo
+	// container.
+	var master = deployment("master", required)
+        rtn.push(master);
+        rtn.push(deployment("gc", required.concat([master])));
+        rtn.push(deployment("tracer", required.concat([master])));
+        rtn.push(deployment("monitor", required.concat([master])));
 
         for (var i = 0; i < tabletServers; i++) {
-            rtn.push(tabletServerDeployment(i));
+            rtn.push(tabletServerDeployment(i, required.concat([master])));
         }
 
         return rtn;
