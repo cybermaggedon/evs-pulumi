@@ -34,8 +34,8 @@ const resources = function(config, provider) {
             env: env,
             ports: containerPorts,
             resources: {
-                limits: { cpu: "1.0", memory: "512M" },
-                requests: { cpu: "0.1", memory: "512M" },
+                limits: { cpu: "1.0", memory: "1G" },
+                requests: { cpu: "0.1", memory: "1G" },
             },
             volumeMounts: [
                 { name: "data", mountPath: "/usr/share/elasticsearch/data" }
