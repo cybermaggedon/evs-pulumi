@@ -37,7 +37,7 @@ exports.resources = function(config, provider) {
                         containers: [
                             {
                                 name: "fair-service",
-                                image: "docker.io/cybermaggedon/fair-service:0.1",
+                                image: "docker.io/cybermaggedon/fair-service:0.2",
                                 ports: [
                                     {
                                         containerPort: 8080,

@@ -43,7 +43,7 @@ exports.resources = function(config, provider) {
                         containers: [
                             {
                                 name: "keycloak",
-                                image: "quay.io/keycloak/keycloak:10.0.2",
+                                image: "jboss/keycloak:10.0.2",
                                 env: [
                                     {
                                         name: "KEYCLOAK_USER",
