@@ -17,7 +17,7 @@ exports.resources = function(config, provider) {
                 namespace: config.require("k8s-namespace")
             },
             spec: {
-                replicas: 1,
+                replicas: 3,
                 selector: {
                     matchLabels: {
                         instance: "fair-service",
@@ -37,7 +37,7 @@ exports.resources = function(config, provider) {
                         containers: [
                             {
                                 name: "fair-service",
-                                image: "docker.io/cybermaggedon/fair-service:0.2",
+                                image: "docker.io/cybermaggedon/fair-service:0.3",
                                 ports: [
                                     {
                                         containerPort: 8080,
