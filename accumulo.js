@@ -101,6 +101,37 @@ const resources = function(config, provider, required) {
         }
     };
 
+    // Master isn't ready until something is running on port 9999.  This
+    // helps startup sequencing, the other deployments don't start until
+    // master has completed 'accumulo init'.
+    const masterContainer = function() {
+        return {
+            name: "accumulo",
+            image: images[0],
+            ports: containerPorts,
+	    readinessProbe: {
+		tcpSocket: {
+		    port: 9999
+		},
+		initialDelaySeconds: 20,
+		periodSeconds: 10
+	    },
+	    livenessProbe: {
+		tcpSocket: {
+		    port: 9999
+		},
+		initialDelaySeconds: 60,
+		periodSeconds: 20
+	    },
+            command: [ "/start-process", "master" ],
+            env: env(-1, "master"),
+            resources: {
+                limits: { cpu: "0.5", memory: "512M" },
+                requests: { cpu: "0.05", memory: "512M" },
+            }
+        }
+    };
+
     const tabletServerContainer = function(id) {
         return {
             name: "accumulo",
@@ -115,6 +146,45 @@ const resources = function(config, provider, required) {
         }
     };
 
+    const masterDeployment = function(required) {
+	var proc = "master";
+        const instance = "accumulo-" + proc;
+        return new k8s.apps.v1.Deployment(instance, {
+            metadata: {
+                name: instance,
+                namespace: config.require("k8s-namespace"),
+                labels: {
+                    instance: instance, app: "accumulo", component: "gaffer"
+                },
+            },
+            spec: {
+                replicas: 1,
+                selector: {
+                    matchLabels: {
+                        instance: instance, app: "accumulo",
+                        component: "gaffer"
+                    }
+                },
+                template: {
+                    metadata: {
+                        labels: {
+                            instance: instance, app: "accumulo",
+                            component: "gaffer"
+                        }
+                    },
+                    spec: {
+                        containers: [ masterContainer() ],
+                    },
+                    hostname: proc,
+                    subdomain: "accumulo"
+                }
+            }
+        }, {
+            provider: provider,
+            dependsOn: required
+        });
+    };
+       
     const deployment = function(proc, required) {
         const instance = "accumulo-" + proc;
         return new k8s.apps.v1.Deployment(instance, {
@@ -202,7 +272,7 @@ const resources = function(config, provider, required) {
 	// race-condition.  Running 'accumulo init' multiple times in parallel
 	// isn't safe.  It would be ideal to fix that in the Accumulo
 	// container.
-	var master = deployment("master", required)
+	var master = masterDeployment(required)
         rtn.push(master);
         rtn.push(deployment("gc", required.concat([master])));
         rtn.push(deployment("tracer", required.concat([master])));
