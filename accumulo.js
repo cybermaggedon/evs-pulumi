@@ -113,15 +113,15 @@ const resources = function(config, provider, required) {
 		tcpSocket: {
 		    port: 9999
 		},
-		initialDelaySeconds: 20,
-		periodSeconds: 10
+		initialDelaySeconds: 45,
+		periodSeconds: 20
 	    },
 	    livenessProbe: {
 		tcpSocket: {
 		    port: 9999
 		},
 		initialDelaySeconds: 60,
-		periodSeconds: 20
+		periodSeconds: 30
 	    },
             command: [ "/start-process", "master" ],
             env: env(-1, "master"),

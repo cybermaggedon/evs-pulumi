@@ -66,16 +66,16 @@ const gaffer = function(config, provider, required, id, schema, table) {
               readOnly: true }
         ],
         readinessProbe: {
-            initialDelaySeconds: 15,
-            periodSeconds: 5,
+            initialDelaySeconds: 45,
+            periodSeconds: 20,
             httpGet: {
                 port: 8080,
                 path: "/rest/v2/graph/config/schema"
             }
         },
         livenessProbe: {
-            initialDelaySeconds: 45,
-            periodSeconds: 10,
+            initialDelaySeconds: 60,
+            periodSeconds: 30,
             httpGet: {
                 port: 8080,
                 path: "/rest/v2/graph/config/schema"
