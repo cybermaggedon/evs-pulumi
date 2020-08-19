@@ -1,0 +1,228 @@
+{
+    "description": "Some test data",
+    "version": "1",
+    "indicators": [
+        {
+            "id": "9364a191-f7f1-46ad-875c-e80f61740dca",
+            "descriptor": {
+                "description": "Spearphish attacker",
+                "category": "credential-discovery-via-cracking",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "email",
+                "value": "malware@malware.org"
+            },
+            "type": "email",
+            "value": "malware@malware.org"
+        },
+        {
+            "id": "0acf0328-6276-4726-9686-510633881413",
+            "descriptor": {
+                "description": "Credential cracking IP address",
+                "category": "credential-discovery-via-cracking",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "ipv4",
+                "value": "192.168.0.254"
+            },
+            "type": "ipv4",
+            "value": "192.168.0.254"
+        },
+        {
+            "id": "0acf0328-6276-4726-9686-510633881413",
+            "descriptor": {
+                "description": "Credential brute force IP address",
+                "category": "credential-discovery-via-guessing",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "ipv4",
+                "value": "192.168.0.253"
+            },
+            "type": "ipv4",
+            "value": "192.168.0.253"
+        },
+        {
+            "id": "0acf0328-6276-4726-9686-510633881413",
+            "descriptor": {
+                "description": "Insider threat op WARDROBE",
+                "category": "abuse-of-system-privileges",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "ipv4",
+                "value": "192.168.0.252"
+            },
+            "type": "ipv4",
+            "value": "192.179.0.252"
+        },
+        {
+            "id": "0acf0328-6276-4726-9686-510633881413",
+            "descriptor": {
+                "description": "Cache-poisoning server IP address",
+                "category": "cache-poisoning",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "ipv4",
+                "value": "192.168.0.251"
+            },
+            "type": "ipv4",
+            "value": "192.168.0.251"
+        },
+        {
+            "id": "0acf0328-6276-4726-9686-510633881413",
+            "descriptor": {
+                "description": "Replay attack server IP address",
+                "category": "replay-of-data-in-transit-use",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "ipv4",
+                "value": "192.179.1.73"
+            },
+            "type": "ipv4",
+            "value": "192.179.1.73"
+        },
+        {
+            "id": "0acf0328-6276-4726-9686-510633881413",
+            "descriptor": {
+                "description": "API abuse source IP address",
+                "category": "application-exploitation-via-api-abuse",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "ipv4",
+                "value": "10.0.2.15"
+            },
+            "type": "ipv4",
+            "value": "10.0.2.15"
+        },
+        {
+            "id": "222b5390-054b-4630-9709-b809288ac947",
+            "descriptor": {
+                "description": "Compromised wifi access point",
+                "category": "application-exploitation-via-fuzzing",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "mac",
+                "value": "aa:bb:cc:dd:ee:ff"
+            },
+            "type": "mac",
+            "value": "aa:bb:cc:dd:ee:ff"
+        },
+        {
+            "id": "c453df4f-a039-4183-92de-ae9082325787",
+            "descriptor": {
+                "description": "File containing malware",
+                "category": "application-exploitation-via-fuzzing",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "path",
+                "value": "/etc/malware.dat"
+            },
+            "type": "path",
+            "value": "/etc/malware.dat"
+        },
+        {
+            "id": "3fa4d58f-d229-42ee-839e-edd3b26ad104",
+            "descriptor": {
+                "description": "Hostname of malware server",
+                "category": "capture-of-stored-data",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "hostname",
+                "value": "www.malware.org"
+            },
+            "type": "hostname",
+            "value": "www.malware.org"
+        },
+        {
+            "id": "845bcc85-49f5-427c-806c-5fe5984c2c5c",
+            "descriptor": {
+                "description": "TCP port of malware trojan",
+                "category": "capture-of-stored-data",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "tcp",
+                "value": "11111"
+            },
+            "type": "tcp",
+            "value": "11111"
+        },
+        {
+            "id": "6b7aa83f-8c43-4aaa-817f-5039adef19ef",
+            "descriptor": {
+                "description": "URL of a page serving malware",
+                "category": "application-exploitation-via-authentication-bypass",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "url",
+                "value": "http://malware.org/malware.dat"
+            },
+            "and": [
+                {
+                    "or": [
+                        {
+                            "type": "url",
+                            "value": "http://www.malware.org/malware.dat"
+                        },
+                        {
+                            "type": "url",
+                            "value": "http://malware.org/malware.dat"
+                        }
+                    ]
+                },
+                {
+                    "not": {
+                        "or": [
+                            {
+                                "type": "port",
+                                "value": "222"
+                            },
+                            {
+                                "type": "port",
+                                "value": "224"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": "02341ecb-24d2-4987-858d-971090039eee",
+            "descriptor": {
+                "description": "Account which malware is observed to use",
+                "category": "misdelivery-of-data",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "account",
+                "value": "finchy_mcgochlan"
+            },
+            "type": "account",
+            "value": "finchy_mcgochlan"
+        },
+        {
+            "id": "fc8911fa-09b5-43a8-85e6-54e577af8f68",
+            "descriptor": {
+                "description": "Hash of BBC logo",
+                "category": "memory-manipulation",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "hash",
+                "value": "md5:1b83d7a25838adc97be4121cc3ce0d83"
+            },
+            "type": "hash",
+            "value": "md5:1b83d7a25838adc97be4121cc3ce0d83"
+        },
+        {
+            "id": "1234d58f-d229-42ee-839e-edd3b26ad104",
+            "descriptor": {
+                "description": "Hostname of APT C+C",
+                "category": "application-exploitation-via-input-manipulation",
+                "author": "someone@example.com",
+                "source": "id:3245edd9-e0f3-4982-9406-fbf93b874555",
+                "type": "hostname",
+                "value": "www.twistedcheese.com"
+            },
+            "type": "hostname",
+            "value": "www.twistedcheese.com"
+        }
+        
+    ]
+}
